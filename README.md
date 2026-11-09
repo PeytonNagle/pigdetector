@@ -55,6 +55,15 @@ See [firmware/README.md](firmware/README.md).
 
 See [cloud/README.md](cloud/README.md) and [docs/api.md](docs/api.md).
 
+| What | Value |
+|---|---|
+| AWS Region | `us-west-1` |
+| Login page (Cognito) | https://pigdetector-828411126105.auth.us-west-1.amazoncognito.com |
+| User pool / app client | `us-west-1_UAbK8omG2` / `53ag8m9ir3lggeb4qo0p53arbp` |
+| IoT endpoint | `a1h01vt47w0y8q-ats.iot.us-west-1.amazonaws.com` |
+
+None of these are secrets. Read them live with `aws cloudformation describe-stacks --stack-name pd-stack --region us-west-1 --query 'Stacks[0].Outputs'`.
+
 ## Frontend (Nisha)
 
 See [web/README.md](web/README.md).
