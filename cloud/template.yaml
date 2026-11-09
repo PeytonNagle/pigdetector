@@ -23,6 +23,9 @@ Resources:
     UpdateReplacePolicy: Retain
     Properties:
       TableName: pd_nodes
+      # Retain guards the table; PITR guards the rows (ownership can't be rebuilt). Costs ~$0 at this size.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       BillingMode: PROVISIONED
       AttributeDefinitions:
         - { AttributeName: deviceId, AttributeType: S }
