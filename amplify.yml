@@ -1,0 +1,11 @@
+# Amplify Hosting: publish web/ as-is. It's plain HTML/CSS/JS, so there's no build step.
+version: 1
+frontend:
+  phases:
+    build:
+      commands:
+        - echo "No build step; publishing web/"
+  artifacts:
+    baseDirectory: web
+    files:
+      - "**/*"
