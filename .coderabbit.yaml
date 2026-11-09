@@ -1,80 +1,10 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-# CodeRabbit review settings. Docs: https://docs.coderabbit.ai/reference/configuration
-language: en-US
-tone_instructions: "Plain English, short sentences. Say why a change matters. Skip style nitpicks a linter would catch."
-
+# CodeRabbit reviews only; it never commits. Merges to main deploy AWS, so every change is made by a person.
 reviews:
-  profile: chill
-  poem: false
-  high_level_summary: true
-  collapse_walkthrough: true
-  sequence_diagrams: true
-
-  auto_review:
-    enabled: true
-    drafts: false
-
-  path_filters:
-    - "!**/package-lock.json"
-
-  path_instructions:
-    - path: "cloud/**/*.yaml"
-      instructions: |
-        AWS SAM / CloudFormation templates.
-        - IAM: flag wildcard actions or resources; each function gets only what it uses.
-        - Never hard-code a Region or account ID; use AWS::Region and AWS::AccountId.
-        - No secrets, keys or passwords in the template; use SSM or Secrets Manager.
-        - DynamoDB and API changes must match docs/api.md and fixtures/.
-    - path: "cloud/lambda/**"
-      instructions: |
-        Node.js Lambda behind API Gateway with Cognito.
-        - Every route must check the caller's Cognito identity and only return that user's data.
-        - Validate request bodies and path params before using them.
-        - Handle errors explicitly and return the error shapes in fixtures/api/errors/.
-        - Don't log tokens or personal data.
-    - path: "cloud/tools/**"
-      instructions: "Dev scripts (fake gateway, demo seeding). Make sure they can't run against the wrong stack by accident."
-    - path: "firmware/**"
-      instructions: |
-        nRF52840 BLE nodes and an ESP32-S3 gateway that publishes to AWS IoT Core.
-        - No certificates, keys or Wi-Fi passwords in source; they belong in git-ignored secrets.h.
-        - Check buffer sizes and string handling for overflows.
-        - BLE and MQTT should reconnect after drops without blocking the loop.
-        - MQTT payloads must match the schemas in fixtures/mqtt and fixtures/schemas.
-    - path: "web/**"
-      instructions: |
-        Plain HTML, CSS and JS hosted on Amplify.
-        - Don't put API or user data into innerHTML; use textContent or escape it.
-        - Don't keep Cognito tokens anywhere they leak (URLs, logs).
-        - API calls must match docs/api.md and handle the error responses.
-    - path: "fixtures/**"
-      instructions: "Shared contracts between firmware, cloud and web. Flag every breaking change and name which side must update."
-    - path: ".github/workflows/**"
-      instructions: "Keep permissions minimal, use OIDC (never stored AWS keys), and pin third-party actions."
-
-  tools:
-    gitleaks:
-      enabled: true
-    shellcheck:
-      enabled: true
-    actionlint:
-      enabled: true
-    zizmor:
-      enabled: true
-    yamllint:
-      enabled: true
-    checkov:
-      enabled: true
-    eslint:
-      enabled: true
-    htmlhint:
-      enabled: true
-    stylelint:
-      enabled: true
-    markdownlint:
-      enabled: true
-    cppcheck:
-      enabled: true
-
-chat:
-  auto_reply: true
+  finishing_touches:
+    autofix:
+      enabled: false
+    fix_ci:
+      enabled: false
+    resolve_merge_conflict:
+      enabled: false
