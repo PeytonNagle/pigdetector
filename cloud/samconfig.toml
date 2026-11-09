@@ -1,0 +1,12 @@
+# Shared by local `sam deploy` and CI so both deploy the same way.
+version = 0.1
+
+[default.global.parameters]
+stack_name = "pd-stack"
+region = "us-west-1"
+
+[default.deploy.parameters]
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+confirm_changeset = false
+fail_on_empty_changeset = false
