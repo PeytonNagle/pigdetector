@@ -2,7 +2,172 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: PigDetector stack (pd-stack). Deployed by .github/workflows/cloud.yml on merges to main.
 
+Parameters:
+  SiteUrl:
+    Type: String
+    Default: https://main.dc3k8sg5zaosx.amplifyapp.com
+    Description: Amplify site, used for login and logout redirects
+  LocalUrl:
+    Type: String
+    Default: http://localhost:5500
+    Description: Local dev server for web/
+
 Resources:
-  # No-op placeholder so the stack can exist before real resources land (BE-1/2/3).
-  Placeholder:
-    Type: AWS::CloudFormation::WaitConditionHandle
+  # ---------- DynamoDB (C3) ----------
+  # Provisioned capacity totals 9 read / 14 write units, inside the free tier's 25 / 25.
+
+  NodesTable:
+    Type: AWS::DynamoDB::Table
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: pd_nodes
+      # Retain guards the table; PITR guards the rows (ownership can't be rebuilt). Costs ~$0 at this size.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - { AttributeName: deviceId, AttributeType: S }
+        - { AttributeName: ownerSub, AttributeType: S }
+      KeySchema:
+        - { AttributeName: deviceId, KeyType: HASH }
+      ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 }
+      GlobalSecondaryIndexes:
+        # Lists a user's nodes without scanning the table.
+        - IndexName: byOwner
+          KeySchema:
+            - { AttributeName: ownerSub, KeyType: HASH }
+          Projection: { ProjectionType: ALL }
+          ProvisionedThroughput: { ReadCapacityUnits: 1, WriteCapacityUnits: 1 }
+
+  LatestTable:
+    Type: AWS::DynamoDB::Table
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: pd_latest
+      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - { AttributeName: deviceId, AttributeType: S }
+      KeySchema:
+        - { AttributeName: deviceId, KeyType: HASH }
+      ProvisionedThroughput: { ReadCapacityUnits: 2, WriteCapacityUnits: 2 }
+
+  HistoryTable:
+    Type: AWS::DynamoDB::Table
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: pd_history
+      BillingMode: PROVISIONED
+      AttributeDefinitions:
+        - { AttributeName: deviceId, AttributeType: S }
+        - { AttributeName: ts, AttributeType: N }
+      KeySchema:
+        - { AttributeName: deviceId, KeyType: HASH }
+        - { AttributeName: ts, KeyType: RANGE }
+      # 10 write units absorb the recovered-readings upload after an outage.
+      ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 10 }
+
+  # ---------- Cognito (C5) ----------
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: pd-users
+      UserPoolTier: ESSENTIALS
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Schema:
+        - { Name: email, AttributeDataType: String, Required: true, Mutable: true }
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - { Name: verified_email, Priority: 1 }
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: pd-web
+      UserPoolId: !Ref UserPool
+      # Public browser client: no secret, code grant with PKCE.
+      GenerateSecret: false
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email, profile]
+      SupportedIdentityProviders: [COGNITO]
+      CallbackURLs:
+        - !Sub ${SiteUrl}/callback.html
+        - !Sub ${LocalUrl}/callback.html
+      LogoutURLs:
+        - !Sub ${SiteUrl}/index.html
+        - !Sub ${LocalUrl}/index.html
+      ExplicitAuthFlows: [ALLOW_REFRESH_TOKEN_AUTH]
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !Sub pigdetector-${AWS::AccountId}
+      ManagedLoginVersion: 2
+
+  # Managed login v2 shows a broken page for any client without a branding style.
+  LoginBranding:
+    Type: AWS::Cognito::ManagedLoginBranding
+    DependsOn: UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientId: !Ref UserPoolClient
+      UseCognitoProvidedValues: true
+
+  # ---------- IoT Core (C2) ----------
+  # Certificates are made by hand and attached to these (private keys never go in a template).
+
+  GatewayThing:
+    Type: AWS::IoT::Thing
+    Properties:
+      ThingName: pd-gw-01
+
+  FakeGatewayThing:
+    Type: AWS::IoT::Thing
+    Properties:
+      ThingName: pd-fake-gw
+
+  GatewayPolicy:
+    Type: AWS::IoT::Policy
+    Properties:
+      PolicyName: pd-gateway
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # A certificate can only connect using the name of the thing it's attached to.
+          - Effect: Allow
+            Action: iot:Connect
+            Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:client/${!iot:Connection.Thing.ThingName}
+          - Effect: Allow
+            Action: iot:Publish
+            Resource:
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/state
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/recovered
+          - Effect: Allow
+            Action: iot:Subscribe
+            Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/pigdetector/+/cmd
+          - Effect: Allow
+            Action: iot:Receive
+            Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/cmd
+
+Outputs:
+  UserPoolId:
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Value: !Ref UserPoolClient
+  CognitoDomain:
+    # Same literal as UserPoolDomain.Domain, so the URL doesn't depend on what Ref returns.
+    Value: !Sub https://pigdetector-${AWS::AccountId}.auth.${AWS::Region}.amazoncognito.com
