@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PigDetector</title>
+  <meta name="description" content="PigDetector watches your fridge door and temperature.">
+  <!-- Placeholder until the real site lands (FE-1). -->
+  <style>
+    :root { --bg: #fdf4f7; --ink: #2a1a22; --muted: #7a5c69; --accent: #c8336e; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #1a1116; --ink: #f6e9ef; --muted: #b897a6; --accent: #ff6fa3; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+      background: var(--bg); color: var(--ink);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; text-align: center;
+    }
+    .pig { font-size: 72px; line-height: 1; }
+    h1 { margin: 12px 0 4px; font-size: clamp(28px, 6vw, 44px); letter-spacing: -0.02em; }
+    p { margin: 0 auto; max-width: 34ch; color: var(--muted); }
+    .tag {
+      display: inline-block; margin-top: 20px; padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--accent); color: var(--accent); font-size: 13px; font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="pig" aria-hidden="true">🐷</div>
+    <h1>PigDetector</h1>
+    <p>Keeps an eye on your fridge door and temperature, and catches midnight snack raids.</p>
+    <span class="tag">Coming soon</span>
+  </main>
+</body>
+</html>
