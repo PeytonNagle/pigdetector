@@ -7,7 +7,7 @@ Everything runs in one project Region, `us-west-1`.
 | Stack | What it holds | Deployed by |
 |---|---|---|
 | `pd-bootstrap` | GitHub OIDC trust and the `pd-github-deploy` role | Hand, once (see [cloud/README.md](../cloud/README.md)) |
-| `pd-stack` | Tables, Cognito, IoT things and policy | CI on merge to `main` when `cloud/` changes |
+| `pd-stack` | Tables, Cognito, IoT things and policy, `pd-api` Lambda | CI on merge to `main` when `cloud/` or `fixtures/schemas/` changes |
 | `aws-sam-cli-managed-default` | SAM's upload bucket | SAM, automatically |
 
 Set up by hand, outside the stacks: the Amplify app (linked to this repo, publishes `web/`), IoT certificates, and the budget and spend limit.

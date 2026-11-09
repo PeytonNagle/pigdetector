@@ -23,6 +23,7 @@ An account with recently collected data, for graders.
 pigdetector/
 ├── fixtures/          shared contracts: JSON Schemas and example messages
 │   ├── schemas/
+│   ├── db/            example DynamoDB items
 │   ├── mqtt/          example MQTT state and command messages
 │   └── api/           example API responses (+ errors/)
 ├── firmware/          Wonhee: nRF52840 nodes and ESP32-S3 gateway
@@ -35,6 +36,7 @@ pigdetector/
 ├── web/               Nisha: plain HTML, CSS and JS, hosted on Amplify
 │   ├── css/
 │   └── js/
+├── test/              checks fixtures/ against the schemas (npm test)
 ├── docs/
 │   ├── api.md         REST API reference
 │   └── setup.md       setup and deploy steps
@@ -44,7 +46,7 @@ pigdetector/
 ## Getting started
 
 1. Install Node 22 (`nvm use` reads `.nvmrc`) and gitleaks (`brew install gitleaks`).
-2. Run `npm install` at the repo root. This turns on the pre-commit hook that blocks keys and certificates.
+2. Run `npm install` at the repo root. This turns on the pre-commit hook that blocks keys and certificates. `npm test` checks `fixtures/`.
 3. See your folder's README for the rest.
 
 ## IoT (Wonhee)

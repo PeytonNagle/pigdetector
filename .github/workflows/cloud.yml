@@ -3,7 +3,7 @@ name: cloud
 on:
   push:
     branches: [main]
-    paths: ["cloud/**", ".github/workflows/cloud.yml"]
+    paths: ["cloud/**", "fixtures/schemas/**", ".github/workflows/cloud.yml"]
   workflow_dispatch:
 
 permissions:
@@ -29,9 +29,23 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # SAM builds in source (samconfig.toml), where it prunes dev dependencies, so esbuild must be global.
+      - run: npm install -g esbuild@0.28.2
+
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
 
       - run: sam build
       - run: sam deploy
+
+      # invoke exits 0 even when the function throws, so check FunctionError ("None" when it ran cleanly).
+      - name: Smoke test pd-api
+        run: |
+          err=$(aws lambda invoke --function-name pd-api --query FunctionError --output text out.json)
+          cat out.json
+          test "$err" = "None"

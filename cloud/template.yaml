@@ -72,6 +72,39 @@ Resources:
       # 10 write units absorb the recovered-readings upload after an outage.
       ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 10 }
 
+  # ---------- API Lambda (C4) ----------
+  # Health check only for now. Table access and routes come with the HTTP API.
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: pd-api
+      Description: PigDetector API
+      CodeUri: lambda/pd_api
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 10
+      LoggingConfig:
+        LogGroup: !Ref ApiFunctionLogs
+    Metadata:
+      # esbuild inlines fixtures/schemas; samconfig.toml's build_in_source lets it reach outside CodeUri.
+      BuildMethod: esbuild
+      BuildProperties:
+        Format: esm
+        Platform: node
+        Target: node22
+        OutExtension: [.js=.mjs]
+        EntryPoints: [index.mjs]
+        Minify: false
+
+  ApiFunctionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/pd-api
+      RetentionInDays: 14
+
   # ---------- Cognito (C5) ----------
 
   UserPool:

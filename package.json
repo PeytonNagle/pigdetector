@@ -4,6 +4,10 @@
   "description": "Dev tools for cloud/ and fixtures/. Firmware and web/ don't use this.",
   "engines": { "node": ">=22" },
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks"
+    "prepare": "git config core.hooksPath .githooks",
+    "test": "node --test 'test/**/*.test.mjs'"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0"
   }
 }
