@@ -1,0 +1,8 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: PigDetector stack (pd-stack). Deployed by .github/workflows/cloud.yml on merges to main.
+
+Resources:
+  # No-op placeholder so the stack can exist before real resources land (BE-1/2/3).
+  Placeholder:
+    Type: AWS::CloudFormation::WaitConditionHandle

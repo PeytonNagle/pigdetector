@@ -1,0 +1,37 @@
+name: cloud
+
+on:
+  push:
+    branches: [main]
+    paths: ["cloud/**", ".github/workflows/cloud.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # lets the job request a GitHub OIDC token for AWS
+  contents: read
+
+# One deploy at a time; a newer merge waits for the running one.
+concurrency:
+  group: pd-stack
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloud
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - run: sam build
+      - run: sam deploy
