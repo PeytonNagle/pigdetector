@@ -18,6 +18,9 @@ Resources:
 
   NodesTable:
     Type: AWS::DynamoDB::Table
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: pd_nodes
       BillingMode: PROVISIONED
@@ -37,6 +40,9 @@ Resources:
 
   LatestTable:
     Type: AWS::DynamoDB::Table
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: pd_latest
       BillingMode: PROVISIONED
@@ -48,6 +54,9 @@ Resources:
 
   HistoryTable:
     Type: AWS::DynamoDB::Table
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       TableName: pd_history
       BillingMode: PROVISIONED
@@ -64,6 +73,9 @@ Resources:
 
   UserPool:
     Type: AWS::Cognito::UserPool
+    # Keep data if the stack is deleted or this resource gets replaced.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       UserPoolName: pd-users
       UserPoolTier: ESSENTIALS
@@ -154,4 +166,5 @@ Outputs:
   UserPoolClientId:
     Value: !Ref UserPoolClient
   CognitoDomain:
-    Value: !Sub https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com
+    # Same literal as UserPoolDomain.Domain, so the URL doesn't depend on what Ref returns.
+    Value: !Sub https://pigdetector-${AWS::AccountId}.auth.${AWS::Region}.amazoncognito.com
