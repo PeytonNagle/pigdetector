@@ -4,9 +4,11 @@ Description: >
   Actions on main deploy pd-stack without stored AWS keys.
 
 Parameters:
+  # GitHub's immutable subject: owner@ownerId/repo@repoId. IDs can't be reused after a rename,
+  # so a new repo with the old name can't match. Check: gh api repos/{owner}/{repo}/actions/oidc/customization/sub
   GitHubRepo:
     Type: String
-    Default: PeytonNagle/pigdetector
+    Default: PeytonNagle@124948563/pigdetector@1451805934
 
 Resources:
   GitHubOidcProvider:

@@ -9,7 +9,10 @@ Owner: Peyton.
 
   ```bash
   aws cloudformation deploy --stack-name pd-bootstrap --template-file cloud/bootstrap.yaml \
-    --capabilities CAPABILITY_NAMED_IAM --region us-west-1
+    --capabilities CAPABILITY_NAMED_IAM --region us-west-1 \
+    --parameter-overrides GitHubRepo=PeytonNagle@124948563/pigdetector@1451805934
   ```
+
+  Pass `--parameter-overrides` on updates: `deploy` keeps a stack's old parameter values and ignores a changed default.
 
 Every cloud resource lives in `template.yaml`. Change it with a pull request, never in the console. Setup steps are in [../docs/setup.md](../docs/setup.md), and the API reference is in [../docs/api.md](../docs/api.md).
