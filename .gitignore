@@ -1,0 +1,37 @@
+# Secrets: never commit these (repo is public)
+secrets.h
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*-private.pem.key
+*-certificate.pem.crt
+AmazonRootCA*.pem
+
+# Node
+node_modules/
+npm-debug.log*
+
+# AWS SAM
+.aws-sam/
+samconfig.local.toml
+
+# Firmware builds
+build/
+.pio/
+*.bin
+*.elf
+*.hex
+*.uf2
+
+# Archives (D2L zip is built with git archive)
+*.zip
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
