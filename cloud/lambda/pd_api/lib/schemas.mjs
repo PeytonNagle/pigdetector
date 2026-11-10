@@ -14,7 +14,10 @@ const validators = Object.fromEntries(Object.entries(schemas).map(([name, s]) =>
 
 // Returns a copy with defaults filled in; throws if the item breaks the schema.
 export function validate(name, item) {
-  const copy = { ...item };
-  if (!validators[name](copy)) throw new Error(`invalid ${name}: ${ajv.errorsText(validators[name].errors)}`);
+  const check = validators[name];
+  if (!check) throw new Error(`no schema named ${name}`);
+  // Deep copy: useDefaults fills nested objects too, and the caller's input must not change.
+  const copy = structuredClone(item);
+  if (!check(copy)) throw new Error(`invalid ${name}: ${ajv.errorsText(check.errors)}`);
   return copy;
 }

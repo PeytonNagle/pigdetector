@@ -10,15 +10,20 @@ test('fills in v and leaves the input unchanged', () => {
 });
 
 test('rejects bad nodes', async (t) => {
+  // Each case names the rule it should break, so a case can't pass by failing for another reason.
   const cases = {
-    'seconds instead of ms': { createdAt: 1762732800 },
-    'unknown version': { v: 2 },
-    'extra field': { color: 'red' },
-    'unknown kind': { kind: 'humidity' },
-    'device ID with spaces': { deviceId: 'pd door' },
-    'empty name': { name: '' },
+    'seconds instead of ms': [{ createdAt: 1762732800 }, /data\/createdAt must be >=/],
+    'unknown version': [{ v: 2 }, /data\/v must be equal to constant/],
+    'extra field': [{ color: 'red' }, /must NOT have additional properties/],
+    'unknown kind': [{ kind: 'humidity' }, /data\/kind must be equal to one of/],
+    'device ID with spaces': [{ deviceId: 'pd door' }, /data\/deviceId must match pattern/],
+    'empty name': [{ name: '' }, /data\/name must NOT have fewer than 1/],
   };
-  for (const [name, change] of Object.entries(cases)) {
-    await t.test(name, () => assert.throws(() => validate('db/node', { ...door, ...change }), /invalid db\/node/));
+  for (const [name, [change, message]] of Object.entries(cases)) {
+    await t.test(name, () => assert.throws(() => validate('db/node', { ...door, ...change }), message));
   }
+});
+
+test('throws a clear error for an unknown schema name', () => {
+  assert.throws(() => validate('db/nope', {}), /no schema named db\/nope/);
 });
