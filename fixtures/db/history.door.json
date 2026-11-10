@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "deviceId": "pd-3f9a1c2b",
+  "type": "door",
+  "mode": "auto",
+  "led": false,
+  "door": "open",
+  "openSec": 0,
+  "limits": { "openMaxSec": 30 },
+  "ack": null,
+  "ackErr": null,
+  "ts": 1763190002000,
+  "source": "live"
+}

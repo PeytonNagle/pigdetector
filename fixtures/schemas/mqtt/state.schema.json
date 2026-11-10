@@ -2,66 +2,55 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/mqtt/state.schema.json",
   "title": "Node state (gateway → cloud)",
-  "description": "Topics pigdetector/{deviceId}/state (live) and pigdetector/{deviceId}/recovered (held during an outage, sent later with its original ts). One reading per message; the gateway sets ts from network time.",
-  "$ref": "#/$defs/reading",
-  "unevaluatedProperties": false,
+  "description": "Topics pigdetector/{deviceId}/state (live) and pigdetector/{deviceId}/recovered (held during an outage, sent later with its original ts). The gateway copies the node's JSON and adds only ts. Unknown keys are ignored.",
+  "type": "object",
+  "$ref": "#/$defs/status",
+  "properties": {
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+    "type": { "$ref": "../common.schema.json#/$defs/type" }
+  },
+  "required": ["deviceId", "type"],
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "door" } } }, "then": { "$ref": "#/$defs/door" } },
+    { "if": { "properties": { "type": { "const": "temp" } } }, "then": { "$ref": "#/$defs/temp" } }
+  ],
   "$defs": {
-    "reading": {
+    "status": {
+      "description": "What the node reports, without deviceId and type. Reused by pd_latest, the API's latest and history items.",
       "type": "object",
       "properties": {
-        "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
         "ts": { "$ref": "../common.schema.json#/$defs/ts" },
-        "kind": { "$ref": "../common.schema.json#/$defs/kind" },
         "mode": { "$ref": "../common.schema.json#/$defs/mode" },
-        "led": { "description": "Whether the LED is on.", "type": "boolean" },
-        "doorOpen": { "description": "Door nodes only.", "type": "boolean" },
+        "led": { "description": "LED is on right now.", "type": "boolean" },
+        "door": { "description": "Door nodes only.", "enum": ["open", "closed"] },
+        "openSec": { "description": "Door nodes only. Counts up while open, 0 when closed or just opened.", "type": "integer", "minimum": 0 },
         "tempC": {
-          "description": "Temperature nodes only. null when the probe is not answering (a DS18B20 fault reads −127 or 85).",
+          "description": "Temperature nodes only, 2 decimals. null if the probe failed (a DS18B20 fault reads −127 or 85).",
           "type": ["number", "null"],
           "minimum": -55,
           "maximum": 125
         },
-        "limits": { "$ref": "#/$defs/limits" },
-        "lastCmdId": {
-          "description": "The last command the node applied. The web app shows \"waiting\" until this matches.",
-          "$ref": "../common.schema.json#/$defs/cmdId"
+        "limits": { "description": "The limits the node is really using.", "$ref": "#/$defs/limits" },
+        "ack": {
+          "description": "cmdId of the last command handled. Stays until the next command.",
+          "anyOf": [{ "$ref": "../common.schema.json#/$defs/cmdId" }, { "type": "null" }]
+        },
+        "ackErr": {
+          "description": "null if that command worked, auto_mode for setLed in auto, invalid for anything else.",
+          "enum": [null, "auto_mode", "invalid"]
         }
       },
-      "required": ["deviceId", "ts", "kind", "mode", "led", "limits"],
-      "allOf": [
-        {
-          "if": { "properties": { "kind": { "const": "door" } }, "required": ["kind"] },
-          "then": {
-            "required": ["doorOpen"],
-            "properties": { "tempC": false, "limits": { "required": ["doorOpenLimitS"] } }
-          }
-        },
-        {
-          "if": { "properties": { "kind": { "const": "temp" } }, "required": ["kind"] },
-          "then": {
-            "required": ["tempC"],
-            "properties": { "doorOpen": false, "limits": { "required": ["tempLimitC"] } }
-          }
-        }
-      ]
+      "required": ["ts", "mode", "led", "limits", "ack", "ackErr"],
+      "anyOf": [{ "$ref": "#/$defs/door" }, { "$ref": "#/$defs/temp" }]
     },
+    "door": { "type": "object", "required": ["door", "openSec"], "properties": { "limits": { "type": "object", "required": ["openMaxSec"] } } },
+    "temp": { "type": "object", "required": ["tempC"], "properties": { "limits": { "type": "object", "required": ["tempMaxC"] } } },
     "limits": {
       "type": "object",
       "properties": {
-        "doorOpenLimitS": {
-          "description": "Seconds the door may stay open before the LED turns on.",
-          "type": "integer",
-          "minimum": 5,
-          "maximum": 3600
-        },
-        "tempLimitC": {
-          "description": "°C above which the LED turns on.",
-          "type": "number",
-          "minimum": -40,
-          "maximum": 30
-        }
-      },
-      "additionalProperties": false
+        "openMaxSec": { "description": "Door: seconds open before the LED turns on in auto. Firmware starts at 30.", "type": "integer", "minimum": 5, "maximum": 600 },
+        "tempMaxC": { "description": "Temp: °C above which the LED turns on in auto. Firmware starts at 4.4.", "type": "number", "minimum": -30, "maximum": 20 }
+      }
     }
   }
 }

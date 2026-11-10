@@ -1,27 +1,46 @@
 {
   "nodes": [
     {
-      "deviceId": "pd-door-01",
-      "kind": "door",
+      "deviceId": "pd-3f9a1c2b",
       "name": "Fridge door",
-      "createdAt": 1762732800000,
+      "type": "door",
+      "createdAt": 1762900000000,
+      "pigHours": {
+        "start": "23:00",
+        "end": "05:00"
+      },
+      "online": true,
       "latest": {
-        "deviceId": "pd-door-01",
-        "ts": 1762790400000,
-        "kind": "door",
-        "mode": "manual",
+        "ts": 1763164800123,
+        "mode": "auto",
         "led": true,
-        "doorOpen": false,
-        "limits": { "doorOpenLimitS": 60 },
-        "lastCmdId": "9b2e4c71-5d3a-4f8e-a1c6-7e0f2d4b8a95"
+        "door": "open",
+        "openSec": 34,
+        "limits": {
+          "openMaxSec": 30
+        },
+        "ack": "c-k3j9x2pq",
+        "ackErr": null
       }
     },
     {
-      "deviceId": "pd-temp-01",
-      "kind": "temp",
-      "name": "Fridge temperature",
-      "createdAt": 1762732860000,
-      "latest": null
+      "deviceId": "pd-8b21e4d0",
+      "name": "Fridge temp",
+      "type": "temp",
+      "createdAt": 1762900100000,
+      "pigHours": null,
+      "online": true,
+      "latest": {
+        "ts": 1763164802456,
+        "mode": "manual",
+        "led": false,
+        "tempC": 4.31,
+        "limits": {
+          "tempMaxC": 4.4
+        },
+        "ack": null,
+        "ackErr": null
+      }
     }
   ]
 }

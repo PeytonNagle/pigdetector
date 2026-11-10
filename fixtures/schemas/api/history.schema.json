@@ -2,21 +2,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/api/history.schema.json",
   "title": "History (response)",
-  "description": "GET /nodes/{deviceId}/history?from=<ms>&to=<ms>. Newest first, at most 500 readings.",
+  "description": "GET /nodes/{deviceId}/history?from=&to=&limit=&openings=. Newest first, live and recovered mixed; { items: [] } when no rows are in range.",
   "type": "object",
   "properties": {
-    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
-    "readings": {
+    "items": {
       "type": "array",
-      "maxItems": 500,
+      "maxItems": 1000,
       "items": {
-        "$ref": "../mqtt/state.schema.json#/$defs/reading",
-        "properties": { "recovered": { "type": "boolean" } },
-        "required": ["recovered"],
-        "unevaluatedProperties": false
+        "description": "A stored message without deviceId and type, plus source.",
+        "type": "object",
+        "$ref": "../mqtt/state.schema.json#/$defs/status",
+        "properties": {
+          "source": { "$ref": "../common.schema.json#/$defs/source" },
+          "pig": {
+            "description": "Door items only: true or false on an opening row (door open, openSec 0), null on every other row.",
+            "type": ["boolean", "null"]
+          }
+        },
+        "required": ["source"],
+        "if": { "required": ["door"] },
+        "then": { "required": ["pig"] }
       }
     }
   },
-  "required": ["deviceId", "readings"],
-  "additionalProperties": false
+  "required": ["items"]
 }

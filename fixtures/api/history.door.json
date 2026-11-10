@@ -1,0 +1,6 @@
+{
+  "items": [
+    { "ts": 1763190007000, "source": "live", "mode": "auto", "led": false, "door": "open", "openSec": 5, "limits": { "openMaxSec": 30 }, "ack": null, "ackErr": null, "pig": null },
+    { "ts": 1763190002000, "source": "live", "mode": "auto", "led": false, "door": "open", "openSec": 0, "limits": { "openMaxSec": 30 }, "ack": null, "ackErr": null, "pig": true }
+  ]
+}

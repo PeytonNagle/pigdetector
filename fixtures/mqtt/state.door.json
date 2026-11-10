@@ -1,10 +1,12 @@
 {
-  "deviceId": "pd-door-01",
-  "ts": 1762790400000,
-  "kind": "door",
-  "mode": "manual",
+  "deviceId": "pd-3f9a1c2b",
+  "type": "door",
+  "mode": "auto",
   "led": true,
-  "doorOpen": false,
-  "limits": { "doorOpenLimitS": 60 },
-  "lastCmdId": "9b2e4c71-5d3a-4f8e-a1c6-7e0f2d4b8a95"
+  "door": "open",
+  "openSec": 34,
+  "limits": { "openMaxSec": 30 },
+  "ack": "c-k3j9x2pq",
+  "ackErr": null,
+  "ts": 1763164800123
 }

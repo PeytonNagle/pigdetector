@@ -1,25 +1,6 @@
 {
-  "deviceId": "pd-temp-01",
-  "readings": [
-    {
-      "deviceId": "pd-temp-01",
-      "ts": 1762790402000,
-      "kind": "temp",
-      "mode": "auto",
-      "led": false,
-      "tempC": 3.6,
-      "limits": { "tempLimitC": 5 },
-      "recovered": false
-    },
-    {
-      "deviceId": "pd-temp-01",
-      "ts": 1762790160000,
-      "kind": "temp",
-      "mode": "auto",
-      "led": false,
-      "tempC": 4.1,
-      "limits": { "tempLimitC": 5 },
-      "recovered": true
-    }
+  "items": [
+    { "ts": 1763164800123, "source": "live", "mode": "auto", "led": false, "tempC": 4.31, "limits": { "tempMaxC": 4.4 }, "ack": null, "ackErr": null },
+    { "ts": 1763164512002, "source": "recovered", "mode": "auto", "led": false, "tempC": 4.28, "limits": { "tempMaxC": 4.4 }, "ack": null, "ackErr": null }
   ]
 }

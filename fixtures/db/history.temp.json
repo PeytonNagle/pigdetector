@@ -1,11 +1,13 @@
 {
   "v": 1,
-  "deviceId": "pd-temp-01",
-  "ts": 1762790160000,
-  "kind": "temp",
+  "deviceId": "pd-8b21e4d0",
+  "type": "temp",
   "mode": "auto",
   "led": false,
-  "tempC": 4.1,
-  "limits": { "tempLimitC": 5 },
-  "recovered": true
+  "tempC": 4.28,
+  "limits": { "tempMaxC": 4.4 },
+  "ack": null,
+  "ackErr": null,
+  "ts": 1763164512002,
+  "source": "recovered"
 }

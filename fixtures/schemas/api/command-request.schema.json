@@ -2,7 +2,6 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/api/command-request.schema.json",
   "title": "Send a command (request)",
-  "description": "POST /nodes/{deviceId}/commands body. Changing limits is just another command.",
-  "$ref": "../mqtt/cmd.schema.json#/$defs/command",
-  "unevaluatedProperties": false
+  "description": "POST /nodes/{deviceId}/commands body. Limits: openMaxSec (door) or tempMaxC (temp); the wrong one for the node's type is 400 invalid_command. Unknown fields are ignored.",
+  "$ref": "../mqtt/cmd.schema.json#/$defs/command"
 }

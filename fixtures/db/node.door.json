@@ -1,8 +1,9 @@
 {
   "v": 1,
-  "deviceId": "pd-door-01",
+  "deviceId": "pd-3f9a1c2b",
   "ownerSub": "3c1f2a9e-7b4d-4e21-9a6f-0d8e5b2c7f13",
-  "kind": "door",
+  "type": "door",
   "name": "Fridge door",
-  "createdAt": 1762732800000
+  "createdAt": 1762900000000,
+  "pigHours": { "start": "23:00", "end": "05:00" }
 }
