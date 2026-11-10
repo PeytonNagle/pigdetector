@@ -1,5 +1,6 @@
 # Secrets: never commit these (repo is public)
-secrets/
+secrets/*
+!secrets/README.md
 secrets.h
 .env
 .env.*
