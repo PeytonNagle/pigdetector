@@ -1,0 +1,10 @@
+{
+  "deviceId": "pd-door-01",
+  "ts": 1762790400000,
+  "kind": "door",
+  "mode": "manual",
+  "led": true,
+  "doorOpen": false,
+  "limits": { "doorOpenLimitS": 60 },
+  "lastCmdId": "9b2e4c71-5d3a-4f8e-a1c6-7e0f2d4b8a95"
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/api/command.schema.json",
+  "title": "Command sent (response)",
+  "description": "POST /nodes/{deviceId}/commands returns this with 202. Watch GET /nodes until latest.lastCmdId equals cmdId.",
+  "type": "object",
+  "properties": {
+    "cmdId": { "$ref": "../common.schema.json#/$defs/cmdId" },
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+    "status": { "const": "sent" }
+  },
+  "required": ["cmdId", "deviceId", "status"],
+  "additionalProperties": false
+}

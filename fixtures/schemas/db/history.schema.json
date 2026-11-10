@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/db/history.schema.json",
+  "title": "pd_history item",
+  "description": "Every reading, keyed by deviceId + ts. IoT rules add false AS recovered (state topic) or true AS recovered (recovered topic). Extra fields are allowed.",
+  "$ref": "../mqtt/state.schema.json#/$defs/reading",
+  "properties": {
+    "v": { "description": "Schema version of this item.", "const": 1, "default": 1 },
+    "recovered": {
+      "description": "True if the gateway held this reading during an outage.",
+      "type": "boolean"
+    }
+  },
+  "required": ["v", "recovered"]
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/mqtt/state.schema.json",
+  "title": "Node state (gateway → cloud)",
+  "description": "Topics pigdetector/{deviceId}/state (live) and pigdetector/{deviceId}/recovered (held during an outage, sent later with its original ts). One reading per message; the gateway sets ts from network time.",
+  "$ref": "#/$defs/reading",
+  "unevaluatedProperties": false,
+  "$defs": {
+    "reading": {
+      "type": "object",
+      "properties": {
+        "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+        "ts": { "$ref": "../common.schema.json#/$defs/ts" },
+        "kind": { "$ref": "../common.schema.json#/$defs/kind" },
+        "mode": { "$ref": "../common.schema.json#/$defs/mode" },
+        "led": { "description": "Whether the LED is on.", "type": "boolean" },
+        "doorOpen": { "description": "Door nodes only.", "type": "boolean" },
+        "tempC": {
+          "description": "Temperature nodes only. null when the probe is not answering (a DS18B20 fault reads −127 or 85).",
+          "type": ["number", "null"],
+          "minimum": -55,
+          "maximum": 125
+        },
+        "limits": { "$ref": "#/$defs/limits" },
+        "lastCmdId": {
+          "description": "The last command the node applied. The web app shows \"waiting\" until this matches.",
+          "$ref": "../common.schema.json#/$defs/cmdId"
+        }
+      },
+      "required": ["deviceId", "ts", "kind", "mode", "led", "limits"],
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "door" } }, "required": ["kind"] },
+          "then": {
+            "required": ["doorOpen"],
+            "properties": { "tempC": false, "limits": { "required": ["doorOpenLimitS"] } }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "temp" } }, "required": ["kind"] },
+          "then": {
+            "required": ["tempC"],
+            "properties": { "doorOpen": false, "limits": { "required": ["tempLimitC"] } }
+          }
+        }
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "doorOpenLimitS": {
+          "description": "Seconds the door may stay open before the LED turns on.",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 3600
+        },
+        "tempLimitC": {
+          "description": "°C above which the LED turns on.",
+          "type": "number",
+          "minimum": -40,
+          "maximum": 30
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/db/latest.schema.json",
+  "title": "pd_latest item",
+  "description": "Newest live reading per node, written by an IoT rule from the state topic (SELECT *, 1 AS v). Extra fields are allowed so a new gateway field can't break reads.",
+  "$ref": "../mqtt/state.schema.json#/$defs/reading",
+  "properties": { "v": { "description": "Schema version of this item.", "const": 1, "default": 1 } },
+  "required": ["v"]
+}
