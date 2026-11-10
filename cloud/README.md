@@ -3,7 +3,7 @@
 Owner: Peyton.
 
 - `template.yaml` AWS SAM stack `pd-stack`: DynamoDB tables, IoT policy and rules, Cognito, HTTP API, Lambda
-- `lambda/pd_api/` the API Lambda (Node.js 22)
+- `lambda/pd_api/` the API Lambda (Node.js 22), bundled with the schemas from `../fixtures/schemas`
 - `tools/` fake gateway and demo seeding scripts
 - `bootstrap.yaml` stack `pd-bootstrap`: GitHub OIDC trust and the `pd-github-deploy` role CI uses. Deployed once by hand:
 
@@ -16,3 +16,5 @@ Owner: Peyton.
   Pass `--parameter-overrides` on updates: `deploy` keeps a stack's old parameter values and ignores a changed default.
 
 Every cloud resource lives in `template.yaml`. Change it with a pull request, never in the console. Setup steps are in [../docs/setup.md](../docs/setup.md), and the API reference is in [../docs/api.md](../docs/api.md).
+
+To test and build the Lambda locally, run the same steps as `.github/workflows/check.yml`.

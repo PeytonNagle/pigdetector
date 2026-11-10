@@ -10,3 +10,8 @@ resolve_s3 = true
 capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
 confirm_changeset = false
 fail_on_empty_changeset = false
+
+[default.build.parameters]
+# Build in place so esbuild can bundle ../../../../fixtures/schemas, which sits outside CodeUri.
+# This prunes devDependencies, so esbuild is a regular dependency of pd_api.
+build_in_source = true

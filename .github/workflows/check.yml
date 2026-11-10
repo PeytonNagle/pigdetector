@@ -1,0 +1,45 @@
+name: check
+
+# Every PR: fixture contracts, Lambda tests and a SAM build. Needs no AWS access.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            cloud/lambda/pd_api/package-lock.json
+
+      - name: Fixtures match their schemas
+        run: npm ci && npm test
+
+      - name: Lambda unit tests
+        working-directory: cloud/lambda/pd_api
+        run: npm ci && npm test
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Lint and build the stack
+        working-directory: cloud
+        run: sam validate --lint && sam build
+
+      - name: Built Lambda loads its bundled schemas
+        working-directory: cloud
+        run: node -e "import('./.aws-sam/build/ApiFunction/index.mjs').then((m) => m.handler()).then((r) => { if (!r.ok) process.exit(1); })"

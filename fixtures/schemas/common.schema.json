@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/common.schema.json",
+  "title": "Shared definitions",
+  "$defs": {
+    "uuid": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "deviceId": {
+      "description": "A node's unique ID. Wonhee sets the final format in the MQTT contract.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "ownerSub": { "description": "Cognito user ID (the token's sub claim).", "$ref": "#/$defs/uuid" },
+    "ts": {
+      "description": "Milliseconds since 1970. The 2020 minimum rejects a seconds value by mistake.",
+      "type": "integer",
+      "minimum": 1577836800000
+    },
+    "kind": { "description": "Which sensor the node has.", "enum": ["door", "temp"] },
+    "name": { "description": "Label shown on the dashboard.", "type": "string", "minLength": 1, "maxLength": 40 }
+  }
+}
