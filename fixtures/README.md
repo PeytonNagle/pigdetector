@@ -1,6 +1,6 @@
 # fixtures
 
-The contracts between the three parts of the system, as JSON Schemas plus real examples. The fake gateway, the web mock API and the Lambda tests all read these files, and the Lambda bundles the schemas to check data at runtime.
+The contracts between the three parts of the system, as JSON Schemas plus real examples. The fake gateway, the web mock API and the Lambda tests all read these files. The Lambda also bundles the schemas to check data at runtime.
 
 - `schemas/` JSON Schemas for every message, stored item and API response
 - `db/` example DynamoDB items (contract C3)
@@ -20,11 +20,4 @@ The contracts between the three parts of the system, as JSON Schemas plus real e
 
 ## Checking
 
-From the repo root:
-
-```bash
-npm install
-npm test
-```
-
-This checks that every schema compiles, every `$id` matches its path, every schema in a subfolder has an example, and every example matches its schema. CI runs it on every pull request.
+`npm test` from the repo root checks every example against its schema. CI runs it on every pull request.

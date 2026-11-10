@@ -33,9 +33,6 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      # SAM builds in source (samconfig.toml), where it prunes dev dependencies, so esbuild must be global.
-      - run: npm install -g esbuild@0.28.2
-
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true

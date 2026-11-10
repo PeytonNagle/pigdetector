@@ -12,5 +12,6 @@ confirm_changeset = false
 fail_on_empty_changeset = false
 
 [default.build.parameters]
-# Build in place so esbuild can import ../../../../fixtures/schemas. Needs esbuild on PATH (npm i -g esbuild).
+# Build in place so esbuild can bundle ../../../../fixtures/schemas, which sits outside CodeUri.
+# This prunes devDependencies, so esbuild is a regular dependency of pd_api.
 build_in_source = true

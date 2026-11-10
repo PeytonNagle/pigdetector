@@ -1,8 +1,0 @@
-{
-  "v": 1,
-  "deviceId": "pd-temp-01",
-  "ownerSub": "3c1f2a9e-7b4d-4e21-9a6f-0d8e5b2c7f13",
-  "kind": "temp",
-  "name": "Fridge temperature",
-  "createdAt": 1762732860000
-}

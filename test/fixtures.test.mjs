@@ -1,59 +1,42 @@
-// Checks the shared contracts in fixtures/: every schema compiles, and every example matches its schema.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative, dirname, basename, sep } from 'node:path';
+import { join, relative, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv from 'ajv/dist/2020.js';
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
-const SCHEMAS = join(FIXTURES, 'schemas');
 const ID_BASE = 'https://schemas.pigdetector.invalid/';
 
-function jsonFiles(dir) {
-  return readdirSync(dir, { recursive: true })
+// Every .json under dir, as [posix path relative to dir, parsed JSON].
+const load = (dir) =>
+  readdirSync(dir, { recursive: true })
     .filter((f) => f.endsWith('.json'))
-    .map((f) => join(dir, f));
-}
+    .map((f) => [f.split(sep).join('/'), JSON.parse(readFileSync(join(dir, f), 'utf8'))]);
 
-const readJson = (file) => JSON.parse(readFileSync(file, 'utf8'));
-const toPosix = (p) => p.split(sep).join('/');
+const schemas = load(join(FIXTURES, 'schemas'));
+const examples = load(FIXTURES).filter(([path]) => !path.startsWith('schemas/'));
 
-const schemaFiles = jsonFiles(SCHEMAS);
-const exampleFiles = jsonFiles(FIXTURES).filter((f) => !f.startsWith(SCHEMAS + sep));
+// No useDefaults: examples must spell out every field, since other teams copy them.
+const ajv = new Ajv({ allErrors: true, schemas: schemas.map(([, s]) => s) });
 
-// No useDefaults here: examples must spell out every field, since other teams copy them.
-const ajv = new Ajv({ allErrors: true, schemas: schemaFiles.map(readJson) });
+// db/node.door.json -> https://schemas.pigdetector.invalid/db/node.schema.json
+const schemaIdFor = (path) => `${ID_BASE}${dirname(path)}/${path.split('/').pop().split('.')[0]}.schema.json`;
 
-// fixtures/db/node.door.json -> schemas/db/node.schema.json
-function schemaIdFor(exampleFile) {
-  const rel = toPosix(relative(FIXTURES, exampleFile));
-  const name = basename(rel).split('.')[0];
-  const dir = dirname(rel);
-  return `${ID_BASE}${dir === '.' ? '' : dir + '/'}${name}.schema.json`;
-}
+for (const [path, schema] of schemas) {
+  test(`schema ${path} compiles under its path`, () => assert.ok(ajv.getSchema(ID_BASE + path), '$id must match the path'));
 
-for (const file of schemaFiles) {
-  const rel = toPosix(relative(SCHEMAS, file));
-
-  test(`schema ${rel}: $id matches its path and it compiles`, () => {
-    assert.equal(readJson(file).$id, ID_BASE + rel);
-    assert.ok(ajv.getSchema(ID_BASE + rel), 'compiles');
-  });
-
-  // Top-level files hold shared $defs only; schemas in subfolders describe real data.
-  if (rel.includes('/')) {
-    test(`schema ${rel}: has at least one example`, () => {
-      assert.ok(exampleFiles.some((f) => schemaIdFor(f) === ID_BASE + rel), 'no example points to this schema');
-    });
+  // Schemas that only hold $defs (like common) describe no data of their own.
+  if (schema.type || schema.$ref || schema.properties) {
+    test(`schema ${path} has an example`, () =>
+      assert.ok(examples.some(([p]) => schemaIdFor(p) === ID_BASE + path)));
   }
 }
 
-for (const file of exampleFiles) {
-  const rel = toPosix(relative(FIXTURES, file));
-  test(`example ${rel} matches its schema`, () => {
-    const validate = ajv.getSchema(schemaIdFor(file));
-    assert.ok(validate, `no schema at ${schemaIdFor(file)}`);
-    assert.ok(validate(readJson(file)), ajv.errorsText(validate.errors));
+for (const [path, example] of examples) {
+  test(`example ${path} matches its schema`, () => {
+    const validate = ajv.getSchema(schemaIdFor(path));
+    assert.ok(validate, `no schema at ${schemaIdFor(path)}`);
+    assert.ok(validate(example), ajv.errorsText(validate.errors));
   });
 }

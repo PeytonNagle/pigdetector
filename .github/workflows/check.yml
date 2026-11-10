@@ -1,11 +1,15 @@
 name: check
 
-# Runs on every PR: fixture contracts, Lambda tests, and a SAM build. Needs no AWS access.
+# Every PR: fixture contracts, Lambda tests and a SAM build. Needs no AWS access.
 on:
   pull_request:
 
 permissions:
   contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -16,6 +20,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            cloud/lambda/pd_api/package-lock.json
 
       - name: Fixtures match their schemas
         run: npm ci && npm test
@@ -23,9 +31,6 @@ jobs:
       - name: Lambda unit tests
         working-directory: cloud/lambda/pd_api
         run: npm ci && npm test
-
-      # SAM builds in source (samconfig.toml), where it prunes dev dependencies, so esbuild must be global.
-      - run: npm install -g esbuild@0.28.2
 
       - uses: aws-actions/setup-sam@v2
         with:
@@ -37,6 +42,4 @@ jobs:
 
       - name: Built Lambda loads its bundled schemas
         working-directory: cloud
-        run: >
-          node -e "import('./.aws-sam/build/ApiFunction/index.mjs').then((m) => m.handler())
-          .then((r) => { console.log(r); if (!r.ok) process.exit(1); })"
+        run: node -e "import('./.aws-sam/build/ApiFunction/index.mjs').then((m) => m.handler()).then((r) => { if (!r.ok) process.exit(1); })"

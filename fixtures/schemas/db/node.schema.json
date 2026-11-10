@@ -5,20 +5,11 @@
   "description": "One registered node and the user who owns it. Only the API Lambda writes these.",
   "type": "object",
   "properties": {
-    "v": {
-      "description": "Schema version of this item.",
-      "const": 1,
-      "default": 1
-    },
+    "v": { "description": "Schema version of this item.", "const": 1, "default": 1 },
     "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
     "ownerSub": { "$ref": "../common.schema.json#/$defs/ownerSub" },
     "kind": { "$ref": "../common.schema.json#/$defs/kind" },
-    "name": {
-      "description": "Label shown on the dashboard, such as \"Fridge door\".",
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 40
-    },
+    "name": { "$ref": "../common.schema.json#/$defs/name" },
     "createdAt": { "$ref": "../common.schema.json#/$defs/ts" }
   },
   "required": ["v", "deviceId", "ownerSub", "kind", "name", "createdAt"],

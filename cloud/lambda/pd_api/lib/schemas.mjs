@@ -1,32 +1,20 @@
-// Validates items against the shared JSON Schemas in fixtures/schemas/.
-// Static imports let esbuild inline the files; SAM must build in source for these paths to resolve.
+// Checks items against the shared schemas in fixtures/schemas/.
+// Static imports let esbuild inline the files; samconfig.toml builds in source so these paths resolve.
 import Ajv from 'ajv/dist/2020.js';
 import common from '../../../../fixtures/schemas/common.schema.json' with { type: 'json' };
 import node from '../../../../fixtures/schemas/db/node.schema.json' with { type: 'json' };
 
-const ajv = new Ajv({ allErrors: true, useDefaults: true, schemas: [common, node] });
+// Keyed by path under fixtures/schemas/, without .schema.json.
+const schemas = { common, 'db/node': node };
 
-// Compiled at load, so a broken schema fails the cold start instead of a request.
-const validators = {
-  node: ajv.getSchema(node.$id),
-};
+const ajv = new Ajv({ allErrors: true, useDefaults: true, schemas: Object.values(schemas) });
 
-export const schemaIds = [common.$id, node.$id];
+// Compile now, so a broken schema fails the cold start instead of a request.
+const validators = Object.fromEntries(Object.entries(schemas).map(([name, s]) => [name, ajv.getSchema(s.$id)]));
 
-export class ValidationError extends Error {
-  constructor(entity, errors) {
-    super(`invalid ${entity}: ${ajv.errorsText(errors)}`);
-    this.name = 'ValidationError';
-    this.entity = entity;
-    this.errors = errors;
-  }
-}
-
-// Returns a validated copy with defaults filled in; the input is never changed.
-export function validate(entity, item) {
-  const check = validators[entity];
-  if (!check) throw new Error(`no schema for ${entity}`);
-  const copy = structuredClone(item);
-  if (!check(copy)) throw new ValidationError(entity, check.errors);
+// Returns a copy with defaults filled in; throws if the item breaks the schema.
+export function validate(name, item) {
+  const copy = { ...item };
+  if (!validators[name](copy)) throw new Error(`invalid ${name}: ${ajv.errorsText(validators[name].errors)}`);
   return copy;
 }
