@@ -2,3 +2,6 @@
 *.png binary
 *.jpg binary
 *.pdf binary
+
+# Collapse lockfiles in GitHub diffs
+**/package-lock.json linguist-generated=true
