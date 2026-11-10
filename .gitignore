@@ -1,4 +1,5 @@
 # Secrets: never commit these (repo is public)
+secrets/
 secrets.h
 .env
 .env.*

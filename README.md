@@ -75,7 +75,7 @@ This repo is public. Certificates, private keys and passwords live only in git-i
 **IoT certificates** let a gateway connect to AWS IoT Core. The sensor nodes don't need one; they only talk BLE to the gateway. Certificates are never in this repo, so each person makes their own:
 
 - Real gateway `pd-gw-01` (Wonhee): make a key and CSR, and Peyton signs it. The key stays in `firmware/gateway/secrets.h`.
-- Fake gateway `pd-fake-gw` (anyone testing the backend): make your own certificate into `~/pigdetector-secrets/pd-fake-gw/`.
+- Fake gateway `pd-fake-gw` (anyone testing the backend): make your own certificate into `secrets/pd-fake-gw/` in the repo folder (git-ignored).
 
 Commands for both are in the build spec's IoT tab, under Certificates.
 
