@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/api/register-request.schema.json",
+  "title": "Register a node (request)",
+  "description": "POST /nodes body. Answers 409 if the device is already registered.",
+  "type": "object",
+  "properties": {
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+    "kind": { "$ref": "../common.schema.json#/$defs/kind" },
+    "name": { "$ref": "../common.schema.json#/$defs/name" }
+  },
+  "required": ["deviceId", "kind", "name"],
+  "additionalProperties": false
+}

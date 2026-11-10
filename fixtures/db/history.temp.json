@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "deviceId": "pd-temp-01",
+  "ts": 1762790160000,
+  "kind": "temp",
+  "mode": "auto",
+  "led": false,
+  "tempC": 4.1,
+  "limits": { "tempLimitC": 5 },
+  "recovered": true
+}

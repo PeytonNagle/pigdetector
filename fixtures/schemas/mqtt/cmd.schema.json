@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/mqtt/cmd.schema.json",
+  "title": "Command (cloud → gateway → node)",
+  "description": "Topic pigdetector/{deviceId}/cmd. The node applies it and publishes its state right away with lastCmdId set.",
+  "$ref": "#/$defs/command",
+  "properties": {
+    "cmdId": { "$ref": "../common.schema.json#/$defs/cmdId" },
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+    "ts": { "$ref": "../common.schema.json#/$defs/ts" }
+  },
+  "required": ["cmdId", "deviceId", "ts"],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "command": {
+      "type": "object",
+      "properties": {
+        "mode": { "$ref": "../common.schema.json#/$defs/mode" },
+        "led": { "description": "Only takes effect in manual mode.", "type": "boolean" },
+        "limits": { "$ref": "state.schema.json#/$defs/limits", "minProperties": 1 }
+      },
+      "anyOf": [{ "required": ["mode"] }, { "required": ["led"] }, { "required": ["limits"] }]
+    }
+  }
+}

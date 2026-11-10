@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/api/history.schema.json",
+  "title": "History (response)",
+  "description": "GET /nodes/{deviceId}/history?from=<ms>&to=<ms>. Newest first, at most 500 readings.",
+  "type": "object",
+  "properties": {
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+    "readings": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "$ref": "../mqtt/state.schema.json#/$defs/reading",
+        "properties": { "recovered": { "type": "boolean" } },
+        "required": ["recovered"],
+        "unevaluatedProperties": false
+      }
+    }
+  },
+  "required": ["deviceId", "readings"],
+  "additionalProperties": false
+}

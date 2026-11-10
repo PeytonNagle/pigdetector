@@ -16,6 +16,14 @@
       "minimum": 1577836800000
     },
     "kind": { "description": "Which sensor the node has.", "enum": ["door", "temp"] },
-    "name": { "description": "Label shown on the dashboard.", "type": "string", "minLength": 1, "maxLength": 40 }
+    "name": { "description": "Label shown on the dashboard.", "type": "string", "minLength": 1, "maxLength": 40 },
+    "mode": {
+      "description": "auto: the node runs its own rules. manual: the LED follows commands.",
+      "enum": ["auto", "manual"]
+    },
+    "cmdId": {
+      "description": "Command ID made by the Lambda, so a reply can be matched to its command.",
+      "$ref": "#/$defs/uuid"
+    }
   }
 }

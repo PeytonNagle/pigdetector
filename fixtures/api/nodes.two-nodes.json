@@ -1,0 +1,27 @@
+{
+  "nodes": [
+    {
+      "deviceId": "pd-door-01",
+      "kind": "door",
+      "name": "Fridge door",
+      "createdAt": 1762732800000,
+      "latest": {
+        "deviceId": "pd-door-01",
+        "ts": 1762790400000,
+        "kind": "door",
+        "mode": "manual",
+        "led": true,
+        "doorOpen": false,
+        "limits": { "doorOpenLimitS": 60 },
+        "lastCmdId": "9b2e4c71-5d3a-4f8e-a1c6-7e0f2d4b8a95"
+      }
+    },
+    {
+      "deviceId": "pd-temp-01",
+      "kind": "temp",
+      "name": "Fridge temperature",
+      "createdAt": 1762732860000,
+      "latest": null
+    }
+  ]
+}

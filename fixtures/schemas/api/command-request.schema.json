@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.pigdetector.invalid/api/command-request.schema.json",
+  "title": "Send a command (request)",
+  "description": "POST /nodes/{deviceId}/commands body. Changing limits is just another command.",
+  "$ref": "../mqtt/cmd.schema.json#/$defs/command",
+  "unevaluatedProperties": false
+}
