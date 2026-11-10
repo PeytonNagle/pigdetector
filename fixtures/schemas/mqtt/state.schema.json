@@ -43,8 +43,17 @@
       "required": ["ts", "mode", "led", "limits", "ack", "ackErr"],
       "anyOf": [{ "$ref": "#/$defs/door" }, { "$ref": "#/$defs/temp" }]
     },
-    "door": { "type": "object", "required": ["door", "openSec"], "properties": { "limits": { "type": "object", "required": ["openMaxSec"] } } },
-    "temp": { "type": "object", "required": ["tempC"], "properties": { "limits": { "type": "object", "required": ["tempMaxC"] } } },
+    "door": {
+      "description": "A door node sends door fields and never the temperature ones, so a mixed message is a firmware bug.",
+      "type": "object",
+      "required": ["door", "openSec"],
+      "properties": { "tempC": false, "limits": { "type": "object", "required": ["openMaxSec"], "properties": { "tempMaxC": false } } }
+    },
+    "temp": {
+      "type": "object",
+      "required": ["tempC"],
+      "properties": { "door": false, "openSec": false, "limits": { "type": "object", "required": ["tempMaxC"], "properties": { "openMaxSec": false } } }
+    },
     "limits": {
       "type": "object",
       "properties": {

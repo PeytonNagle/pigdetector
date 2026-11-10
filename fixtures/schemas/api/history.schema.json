@@ -21,7 +21,8 @@
         },
         "required": ["source"],
         "if": { "required": ["door"] },
-        "then": { "required": ["pig"] }
+        "then": { "required": ["pig"] },
+        "else": { "properties": { "pig": false } }
       }
     }
   },
