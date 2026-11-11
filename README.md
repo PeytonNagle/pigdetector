@@ -6,6 +6,7 @@ ECE 413/513 final project, Fall 2026. PigDetector watches a fridge: a door node 
 
 ## Links
 
+- Build spec (plan, contracts, task status): https://claude.ai/artifact/MVGv1zZJjZ2ogyUqrwEXvJ
 - Live site: https://main.dc3k8sg5zaosx.amplifyapp.com
 - Pitch video: _TBD_
 - Demo video: _TBD_
