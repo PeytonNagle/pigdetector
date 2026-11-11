@@ -21,7 +21,12 @@
         },
         "required": ["source"],
         "if": { "required": ["door"] },
-        "then": { "required": ["pig"] },
+        "then": {
+          "required": ["pig"],
+          "if": { "properties": { "door": { "const": "open" }, "openSec": { "const": 0 } } },
+          "then": { "properties": { "pig": { "type": "boolean" } } },
+          "else": { "properties": { "pig": { "type": "null" } } }
+        },
         "else": { "properties": { "pig": false } }
       }
     }
