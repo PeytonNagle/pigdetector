@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/mqtt/cmd.schema.json",
   "title": "Command (cloud → gateway → node)",
-  "description": "Topic pigdetector/{deviceId}/cmd. The gateway writes it to the node unchanged. The node sets ack to cmdId and sends its state right away. Unknown keys are ignored.",
+  "description": "Topic pigdetector/{deviceId}/cmd. The gateway writes it to the node unchanged, or logs and drops it if the topic and body deviceId differ. The node sets ack to cmdId and sends its state right away. Unknown keys are ignored.",
   "type": "object",
   "$ref": "#/$defs/command",
   "properties": {

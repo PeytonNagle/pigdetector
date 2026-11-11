@@ -2,10 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/api/update-request.schema.json",
   "title": "Change a node's cloud settings (request)",
-  "description": "PATCH /nodes/{deviceId} body, checked after trimming strings. Send only the fields you're changing. pigHours on a temp node, or start == end, is 400 invalid_body (checked by the Lambda). Limits are a command, not here. Unknown fields are ignored.",
+  "description": "PATCH /nodes/{deviceId} body, checked after trimming strings. Send only the fields you're changing; a body with neither field is 400 invalid_body. pigHours on a temp node, or start == end, is 400 invalid_body (checked by the Lambda). Limits are a command, not here. Unknown fields are ignored.",
   "type": "object",
   "properties": {
     "name": { "$ref": "../common.schema.json#/$defs/name" },
     "pigHours": { "$ref": "../common.schema.json#/$defs/pigHours" }
-  }
+  },
+  "anyOf": [{ "required": ["name"] }, { "required": ["pigHours"] }]
 }
