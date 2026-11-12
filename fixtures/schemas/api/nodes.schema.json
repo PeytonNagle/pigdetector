@@ -2,26 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/api/nodes.schema.json",
   "title": "My nodes (response)",
-  "description": "GET /nodes. Each node with its latest reading, or null before its first one.",
+  "description": "GET /nodes. The signed-in user's nodes; [] if none registered. The dashboard polls this every 5 s.",
   "type": "object",
-  "properties": {
-    "nodes": {
-      "type": "array",
-      "items": {
-        "$ref": "node.schema.json#/$defs/node",
-        "properties": {
-          "latest": {
-            "anyOf": [
-              { "$ref": "../mqtt/state.schema.json#/$defs/reading", "unevaluatedProperties": false },
-              { "type": "null" }
-            ]
-          }
-        },
-        "required": ["latest"],
-        "unevaluatedProperties": false
-      }
-    }
-  },
-  "required": ["nodes"],
-  "additionalProperties": false
+  "properties": { "nodes": { "type": "array", "items": { "$ref": "node.schema.json" } } },
+  "required": ["nodes"]
 }

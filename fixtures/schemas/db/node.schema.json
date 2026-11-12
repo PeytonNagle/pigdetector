@@ -2,16 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/db/node.schema.json",
   "title": "pd_nodes item",
-  "description": "One registered node and the user who owns it. Only the API Lambda writes these.",
+  "description": "One registered node and the user who owns it. Only the API Lambda writes these, so unknown fields are a bug and are rejected. The Lambda sets name to deviceId when none is given.",
   "type": "object",
   "properties": {
     "v": { "description": "Schema version of this item.", "const": 1, "default": 1 },
     "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
     "ownerSub": { "$ref": "../common.schema.json#/$defs/ownerSub" },
-    "kind": { "$ref": "../common.schema.json#/$defs/kind" },
+    "type": { "$ref": "../common.schema.json#/$defs/type" },
     "name": { "$ref": "../common.schema.json#/$defs/name" },
-    "createdAt": { "$ref": "../common.schema.json#/$defs/ts" }
+    "createdAt": { "$ref": "../common.schema.json#/$defs/ts" },
+    "pigHours": {
+      "description": "Door nodes only; null until set, and always null for temp nodes.",
+      "anyOf": [{ "$ref": "../common.schema.json#/$defs/pigHours" }, { "type": "null" }]
+    }
   },
-  "required": ["v", "deviceId", "ownerSub", "kind", "name", "createdAt"],
+  "required": ["v", "deviceId", "ownerSub", "type", "name", "createdAt", "pigHours"],
+  "if": { "properties": { "type": { "const": "temp" } } },
+  "then": { "properties": { "pigHours": { "type": "null" } } },
   "additionalProperties": false
 }

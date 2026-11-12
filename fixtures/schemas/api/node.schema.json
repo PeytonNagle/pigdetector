@@ -2,19 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/api/node.schema.json",
   "title": "Node (response)",
-  "description": "POST /nodes returns this with 201. Also the base of each item in GET /nodes.",
-  "$ref": "#/$defs/node",
-  "unevaluatedProperties": false,
-  "$defs": {
-    "node": {
-      "type": "object",
-      "properties": {
-        "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
-        "kind": { "$ref": "../common.schema.json#/$defs/kind" },
-        "name": { "$ref": "../common.schema.json#/$defs/name" },
-        "createdAt": { "$ref": "../common.schema.json#/$defs/ts" }
-      },
-      "required": ["deviceId", "kind", "name", "createdAt"]
+  "description": "Returned by POST /nodes (201), GET /nodes/{deviceId}, PATCH /nodes/{deviceId}, and as each item of GET /nodes. Unknown fields are ignored.",
+  "type": "object",
+  "properties": {
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+    "name": { "$ref": "../common.schema.json#/$defs/name" },
+    "type": { "$ref": "../common.schema.json#/$defs/type" },
+    "createdAt": { "$ref": "../common.schema.json#/$defs/ts" },
+    "pigHours": {
+      "description": "null for temp nodes, and for door nodes until set.",
+      "anyOf": [{ "$ref": "../common.schema.json#/$defs/pigHours" }, { "type": "null" }]
+    },
+    "online": { "description": "true if latest.ts is less than 20 s old.", "type": "boolean" },
+    "latest": {
+      "description": "Last reported state. Always present, since a node can't be registered before it reports.",
+      "$ref": "../mqtt/state.schema.json#/$defs/status"
     }
-  }
+  },
+  "required": ["deviceId", "name", "type", "createdAt", "pigHours", "online", "latest"],
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "door" } } },
+      "then": { "properties": { "latest": { "$ref": "../mqtt/state.schema.json#/$defs/door" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "temp" } } },
+      "then": { "properties": { "pigHours": { "type": "null" }, "latest": { "$ref": "../mqtt/state.schema.json#/$defs/temp" } } }
+    }
+  ]
 }

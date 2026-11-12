@@ -2,19 +2,30 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/api/errors/error.schema.json",
   "title": "Error (response)",
-  "description": "Every 4xx and 5xx response. message is plain English the web app can show as is.",
+  "description": "Every error the Lambda returns. message is for developers; the UI picks its own words from code. A missing or expired token never reaches the Lambda: API Gateway answers 401 {\"message\":\"Unauthorized\"}.",
   "type": "object",
   "properties": {
     "error": {
       "type": "object",
       "properties": {
-        "code": { "enum": ["bad_request", "unauthorized", "forbidden", "not_found", "conflict", "internal"] },
+        "code": {
+          "enum": [
+            "invalid_device_id",
+            "invalid_body",
+            "already_registered",
+            "node_not_seen",
+            "node_not_found",
+            "invalid_command",
+            "auto_mode",
+            "publish_failed",
+            "invalid_query",
+            "internal"
+          ]
+        },
         "message": { "type": "string", "minLength": 1 }
       },
-      "required": ["code", "message"],
-      "additionalProperties": false
+      "required": ["code", "message"]
     }
   },
-  "required": ["error"],
-  "additionalProperties": false
+  "required": ["error"]
 }

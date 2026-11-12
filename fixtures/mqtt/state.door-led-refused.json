@@ -1,0 +1,12 @@
+{
+  "deviceId": "pd-3f9a1c2b",
+  "type": "door",
+  "mode": "auto",
+  "led": false,
+  "door": "closed",
+  "openSec": 0,
+  "limits": { "openMaxSec": 30 },
+  "ack": "c-p0w8ztq1",
+  "ackErr": "auto_mode",
+  "ts": 1763164900000
+}

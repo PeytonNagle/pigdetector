@@ -2,24 +2,43 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/mqtt/cmd.schema.json",
   "title": "Command (cloud → gateway → node)",
-  "description": "Topic pigdetector/{deviceId}/cmd. The node applies it and publishes its state right away with lastCmdId set.",
+  "description": "Topic pigdetector/{deviceId}/cmd. The gateway writes it to the node unchanged, or logs and drops it if the topic and body deviceId differ. The node sets ack to cmdId and sends its state right away. Unknown keys are ignored.",
+  "type": "object",
   "$ref": "#/$defs/command",
   "properties": {
     "cmdId": { "$ref": "../common.schema.json#/$defs/cmdId" },
-    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
-    "ts": { "$ref": "../common.schema.json#/$defs/ts" }
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" }
   },
-  "required": ["cmdId", "deviceId", "ts"],
-  "unevaluatedProperties": false,
+  "required": ["cmdId", "deviceId"],
   "$defs": {
     "command": {
+      "description": "The action and its value. Whether a limit fits the node's type is checked by the Lambda and the node.",
       "type": "object",
-      "properties": {
-        "mode": { "$ref": "../common.schema.json#/$defs/mode" },
-        "led": { "description": "Only takes effect in manual mode.", "type": "boolean" },
-        "limits": { "$ref": "state.schema.json#/$defs/limits", "minProperties": 1 }
-      },
-      "anyOf": [{ "required": ["mode"] }, { "required": ["led"] }, { "required": ["limits"] }]
+      "properties": { "action": { "enum": ["setMode", "setLed", "setLimits"] } },
+      "required": ["action"],
+      "allOf": [
+        {
+          "if": { "properties": { "action": { "const": "setMode" } } },
+          "then": { "properties": { "mode": { "$ref": "../common.schema.json#/$defs/mode" } }, "required": ["mode"] }
+        },
+        {
+          "if": { "properties": { "action": { "const": "setLed" } } },
+          "then": { "properties": { "led": { "type": "boolean" } }, "required": ["led"] }
+        },
+        {
+          "if": { "properties": { "action": { "const": "setLimits" } } },
+          "then": {
+            "properties": {
+              "limits": {
+                "type": "object",
+                "$ref": "state.schema.json#/$defs/limits",
+                "anyOf": [{ "required": ["openMaxSec"] }, { "required": ["tempMaxC"] }]
+              }
+            },
+            "required": ["limits"]
+          }
+        }
+      ]
     }
   }
 }

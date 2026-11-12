@@ -1,1 +1,1 @@
-{ "limits": { "tempLimitC": 4 } }
+{ "action": "setLimits", "limits": { "openMaxSec": 45 } }

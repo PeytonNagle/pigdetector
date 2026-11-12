@@ -5,9 +5,9 @@
   "$defs": {
     "uuid": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
     "deviceId": {
-      "description": "A node's unique ID. Wonhee sets the final format in the MQTT contract.",
+      "description": "pd- plus 8 lowercase hex digits from the nRF52840's factory ID.",
       "type": "string",
-      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+      "pattern": "^pd-[0-9a-f]{8}$"
     },
     "ownerSub": { "description": "Cognito user ID (the token's sub claim).", "$ref": "#/$defs/uuid" },
     "ts": {
@@ -15,15 +15,27 @@
       "type": "integer",
       "minimum": 1577836800000
     },
-    "kind": { "description": "Which sensor the node has.", "enum": ["door", "temp"] },
+    "type": { "description": "Which sensor the node has.", "enum": ["door", "temp"] },
     "name": { "description": "Label shown on the dashboard.", "type": "string", "minLength": 1, "maxLength": 40 },
     "mode": {
       "description": "auto: the node runs its own rules. manual: the LED follows commands.",
       "enum": ["auto", "manual"]
     },
     "cmdId": {
-      "description": "Command ID made by the Lambda, so a reply can be matched to its command.",
-      "$ref": "#/$defs/uuid"
-    }
+      "description": "c- plus 8 random base-36 characters, made by the Lambda. The node echoes it back as ack.",
+      "type": "string",
+      "pattern": "^c-[0-9a-z]{8}$"
+    },
+    "pigHours": {
+      "description": "Door nodes only. Phoenix time, 24-hour HH:MM; may cross midnight (23:00 to 05:00). The Lambda also rejects start == end.",
+      "type": "object",
+      "properties": {
+        "start": { "$ref": "#/$defs/hhmm" },
+        "end": { "$ref": "#/$defs/hhmm" }
+      },
+      "required": ["start", "end"]
+    },
+    "hhmm": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
+    "source": { "description": "live: sent on the state topic. recovered: held by the gateway during an outage.", "enum": ["live", "recovered"] }
   }
 }

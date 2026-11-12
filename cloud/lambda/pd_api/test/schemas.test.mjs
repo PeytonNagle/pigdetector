@@ -15,7 +15,8 @@ test('rejects bad nodes', async (t) => {
     'seconds instead of ms': [{ createdAt: 1762732800 }, /data\/createdAt must be >=/],
     'unknown version': [{ v: 2 }, /data\/v must be equal to constant/],
     'extra field': [{ color: 'red' }, /must NOT have additional properties/],
-    'unknown kind': [{ kind: 'humidity' }, /data\/kind must be equal to one of/],
+    'unknown type': [{ type: 'humidity' }, /data\/type must be equal to one of/],
+    'pig hours on a temp node': [{ type: 'temp' }, /data\/pigHours must be null/],
     'device ID with spaces': [{ deviceId: 'pd door' }, /data\/deviceId must match pattern/],
     'empty name': [{ name: '' }, /data\/name must NOT have fewer than 1/],
   };

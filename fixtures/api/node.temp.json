@@ -1,0 +1,17 @@
+{
+  "deviceId": "pd-8b21e4d0",
+  "name": "Fridge temp",
+  "type": "temp",
+  "createdAt": 1762900100000,
+  "pigHours": null,
+  "online": true,
+  "latest": {
+    "ts": 1763164802456,
+    "mode": "manual",
+    "led": false,
+    "tempC": 4.31,
+    "limits": { "tempMaxC": 4.4 },
+    "ack": null,
+    "ackErr": null
+  }
+}

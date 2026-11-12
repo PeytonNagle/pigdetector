@@ -1,6 +1,6 @@
 # fixtures
 
-The contracts between firmware, cloud and web. Each contract has **rules** (a JSON Schema) and **examples** (real data that follows the rules). If the build spec and these files disagree, these files win. Changing one needs a yes from the person on the other side of that contract.
+The contracts between firmware, cloud and web. Each contract has **rules** (a JSON Schema) and **examples** (real data that follows the rules). After the Nov 12 freeze, if the build spec and these files disagree, these files win. Changing one needs a yes from the person on the other side of that contract.
 
 ## Rules and examples
 
@@ -18,7 +18,7 @@ An example is named `<schema>.<case>.json`. The part before the first dot picks 
 db/node.door.json  →  schemas/db/node.schema.json
 ```
 
-Each schema needs at least one example. Examples spell out every field, defaults included, since other code copies them. `schemas/common.schema.json` holds shared pieces (IDs, timestamps, node kind), which other schemas use with `$ref`.
+Each schema needs at least one example. Examples spell out every field, defaults included, since other code copies them. `schemas/common.schema.json` holds shared pieces (IDs, timestamps, node type), which other schemas use with `$ref`.
 
 ## Writing a schema
 
