@@ -194,10 +194,14 @@ Resources:
               - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/${!iot:Connection.Thing.Attributes[nodePrefix]}*/recovered
           - Effect: Allow
             Action: iot:Subscribe
-            Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/pigdetector/+/cmd
+            # Policies treat + literally: allow one pigdetector/+/cmd subscription or one per node.
+            Resource:
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/pigdetector/+/cmd
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/pigdetector/${!iot:Connection.Thing.Attributes[nodePrefix]}*/cmd
+          # Scoped like Publish, so a test gateway subscribed to + never receives a real node's commands.
           - Effect: Allow
             Action: iot:Receive
-            Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/cmd
+            Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/${!iot:Connection.Thing.Attributes[nodePrefix]}*/cmd
 
   # Drops payloads whose deviceId disagrees with the topic, and ts in seconds or missing (contract: ms since 2020).
   LiveRule:
@@ -311,6 +315,47 @@ Resources:
                   - logs:DescribeLogStreams
                   - logs:PutLogEvents
                 Resource: !GetAtt RulesErrorLogs.Arn
+
+  # Device errors (denied connects, subscribes, publishes) with client ID and topic; IoT writes to AWSIotLogsV2.
+  IotLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: AWSIotLogsV2
+      RetentionInDays: 14
+
+  IotLogging:
+    Type: AWS::IoT::Logging
+    Properties:
+      AccountId: !Ref AWS::AccountId
+      DefaultLogLevel: ERROR
+      RoleArn: !GetAtt IotLoggingRole.Arn
+
+  IotLoggingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: pd-iot-logging
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: iot.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: pd-iot-logging
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:PutMetricFilter
+                  - logs:PutRetentionPolicy
+                Resource: !GetAtt IotLogs.Arn
 
 Outputs:
   UserPoolId:
