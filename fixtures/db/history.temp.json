@@ -6,6 +6,8 @@
   "led": false,
   "tempC": 4.28,
   "limits": { "tempMaxC": 4.4 },
+  "ack": null,
+  "ackErr": null,
   "ts": 1763164512002,
   "source": "recovered"
 }

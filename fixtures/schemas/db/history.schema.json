@@ -2,22 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/db/history.schema.json",
   "title": "pd_history item",
-  "description": "Every message, keyed by deviceId + ts. Rule pd_live adds 'live' AS source and pd_recovered adds 'recovered' AS source; both add 1 AS v. The rules' DynamoDBv2 action drops null fields, so a missing ack, ackErr or tempC means null, and the Lambda puts the nulls back when it reads. Unknown fields are allowed.",
+  "description": "Every message, keyed by deviceId + ts. Rule pd_live adds 'live' AS source and pd_recovered adds 'recovered' AS source; both add 1 AS v. The rules' DynamoDBv2 action drops null fields, so a missing ack, ackErr or tempC means null. Validating with useDefaults restores ack and ackErr; the Lambda restores tempC on temp items. Unknown fields are allowed.",
   "type": "object",
   "properties": {
     "v": { "description": "Schema version of this item.", "const": 1, "default": 1 },
     "source": { "$ref": "../common.schema.json#/$defs/source" },
     "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
     "type": { "$ref": "../common.schema.json#/$defs/type" },
-    "ts": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ts" },
-    "mode": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/mode" },
+    "ts": { "$ref": "../common.schema.json#/$defs/ts" },
+    "mode": { "$ref": "../common.schema.json#/$defs/mode" },
     "led": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/led" },
     "door": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/door" },
     "openSec": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/openSec" },
     "tempC": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/tempC" },
     "limits": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/limits" },
-    "ack": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ack" },
-    "ackErr": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ackErr" }
+    "ack": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ack", "default": null },
+    "ackErr": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ackErr", "default": null }
   },
   "required": ["v", "source", "deviceId", "type", "ts", "mode", "led", "limits"],
   "allOf": [
