@@ -194,6 +194,89 @@ Resources:
             Action: iot:Receive
             Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/cmd
 
+  # deviceId = topic(2) drops messages whose payload disagrees with the topic, and implies deviceId is set.
+  LiveRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: pd_live
+      TopicRulePayload:
+        AwsIotSqlVersion: "2016-03-23"
+        Sql: >-
+          SELECT *, 'live' AS source, 1 AS v FROM 'pigdetector/+/state'
+          WHERE deviceId = topic(2) AND isUndefined(ts) = false
+        RuleDisabled: false
+        Actions:
+          - DynamoDBv2:
+              PutItem: { TableName: !Ref LatestTable }
+              RoleArn: !GetAtt RulesRole.Arn
+          - DynamoDBv2:
+              PutItem: { TableName: !Ref HistoryTable }
+              RoleArn: !GetAtt RulesRole.Arn
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !Ref RulesErrorLogs
+            RoleArn: !GetAtt RulesRole.Arn
+
+  # Recovered readings are old, so they skip pd_latest and never replace the current state.
+  RecoveredRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: pd_recovered
+      TopicRulePayload:
+        AwsIotSqlVersion: "2016-03-23"
+        Sql: >-
+          SELECT *, 'recovered' AS source, 1 AS v FROM 'pigdetector/+/recovered'
+          WHERE deviceId = topic(2) AND isUndefined(ts) = false
+        RuleDisabled: false
+        Actions:
+          - DynamoDBv2:
+              PutItem: { TableName: !Ref HistoryTable }
+              RoleArn: !GetAtt RulesRole.Arn
+        ErrorAction:
+          CloudwatchLogs:
+            LogGroupName: !Ref RulesErrorLogs
+            RoleArn: !GetAtt RulesRole.Arn
+
+  RulesErrorLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/iot/pd-rules-errors
+      RetentionInDays: 14
+
+  RulesRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # The CI deploy role may only create roles named pd-*.
+      RoleName: pd-iot-rules
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: iot.amazonaws.com }
+            Action: sts:AssumeRole
+            # Only this account's pd_ rules, so another account's rule can't borrow the role.
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnLike:
+                aws:SourceArn: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:rule/pd_*
+      Policies:
+        - PolicyName: pd-iot-rules
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:PutItem
+                Resource:
+                  - !GetAtt LatestTable.Arn
+                  - !GetAtt HistoryTable.Arn
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:DescribeLogStreams
+                  - logs:PutLogEvents
+                Resource: !GetAtt RulesErrorLogs.Arn
+
 Outputs:
   UserPoolId:
     Value: !Ref UserPool
