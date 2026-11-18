@@ -165,11 +165,16 @@ Resources:
     Type: AWS::IoT::Thing
     Properties:
       ThingName: pd-gw-01
+      AttributePayload:
+        Attributes: { nodePrefix: pd- }
 
+  # Test gateways may only publish for test IDs (pd-0000xxxx), so they can't overwrite a real node's data.
   FakeGatewayThing:
     Type: AWS::IoT::Thing
     Properties:
       ThingName: pd-fake-gw
+      AttributePayload:
+        Attributes: { nodePrefix: pd-0000 }
 
   GatewayPolicy:
     Type: AWS::IoT::Policy
@@ -185,8 +190,8 @@ Resources:
           - Effect: Allow
             Action: iot:Publish
             Resource:
-              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/state
-              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/recovered
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/${!iot:Connection.Thing.Attributes[nodePrefix]}*/state
+              - !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/${!iot:Connection.Thing.Attributes[nodePrefix]}*/recovered
           - Effect: Allow
             Action: iot:Subscribe
             Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topicfilter/pigdetector/+/cmd
@@ -242,6 +247,36 @@ Resources:
     Properties:
       LogGroupName: /aws/iot/pd-rules-errors
       RetentionInDays: 14
+
+  # Every line in the error log is a reading that didn't reach DynamoDB (throttled, bad key, denied).
+  RulesErrorMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref RulesErrorLogs
+      FilterPattern: ""
+      MetricTransformations:
+        - { MetricNamespace: PigDetector, MetricName: RuleWriteErrors, MetricValue: "1", DefaultValue: 0 }
+
+  RulesErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: pd-rules-write-errors
+      AlarmDescription: An IoT rule failed to write a gateway message to DynamoDB. See /aws/iot/pd-rules-errors.
+      Namespace: PigDetector
+      MetricName: RuleWriteErrors
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+
+  # Subscribe by hand so no email address lands in this public repo.
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: pd-alerts
 
   RulesRole:
     Type: AWS::IAM::Role
