@@ -194,7 +194,7 @@ Resources:
             Action: iot:Receive
             Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/*/cmd
 
-  # deviceId = topic(2) drops messages whose payload disagrees with the topic, and implies deviceId is set.
+  # Drops payloads whose deviceId disagrees with the topic, and ts in seconds or missing (contract: ms since 2020).
   LiveRule:
     Type: AWS::IoT::TopicRule
     Properties:
@@ -203,7 +203,7 @@ Resources:
         AwsIotSqlVersion: "2016-03-23"
         Sql: >-
           SELECT *, 'live' AS source, 1 AS v FROM 'pigdetector/+/state'
-          WHERE deviceId = topic(2) AND isUndefined(ts) = false
+          WHERE deviceId = topic(2) AND ts >= 1577836800000
         RuleDisabled: false
         Actions:
           - DynamoDBv2:
@@ -226,7 +226,7 @@ Resources:
         AwsIotSqlVersion: "2016-03-23"
         Sql: >-
           SELECT *, 'recovered' AS source, 1 AS v FROM 'pigdetector/+/recovered'
-          WHERE deviceId = topic(2) AND isUndefined(ts) = false
+          WHERE deviceId = topic(2) AND ts >= 1577836800000
         RuleDisabled: false
         Actions:
           - DynamoDBv2:
