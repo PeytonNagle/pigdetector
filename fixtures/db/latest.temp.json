@@ -6,8 +6,6 @@
   "led": false,
   "tempC": 4.31,
   "limits": { "tempMaxC": 4.4 },
-  "ack": null,
-  "ackErr": null,
   "ts": 1763164802456,
   "source": "live"
 }

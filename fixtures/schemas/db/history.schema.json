@@ -2,12 +2,32 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/db/history.schema.json",
   "title": "pd_history item",
-  "description": "Every message, keyed by deviceId + ts. Rule pd_live adds 'live' AS source and pd_recovered adds 'recovered' AS source; both add 1 AS v. Unknown fields are allowed.",
+  "description": "Every message, keyed by deviceId + ts. Rule pd_live adds 'live' AS source and pd_recovered adds 'recovered' AS source; both add 1 AS v. The rules' DynamoDBv2 action drops null fields, so a missing ack, ackErr or tempC means null, and the Lambda puts the nulls back when it reads. Unknown fields are allowed.",
   "type": "object",
-  "$ref": "../mqtt/state.schema.json",
   "properties": {
     "v": { "description": "Schema version of this item.", "const": 1, "default": 1 },
-    "source": { "$ref": "../common.schema.json#/$defs/source" }
+    "source": { "$ref": "../common.schema.json#/$defs/source" },
+    "deviceId": { "$ref": "../common.schema.json#/$defs/deviceId" },
+    "type": { "$ref": "../common.schema.json#/$defs/type" },
+    "ts": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ts" },
+    "mode": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/mode" },
+    "led": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/led" },
+    "door": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/door" },
+    "openSec": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/openSec" },
+    "tempC": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/tempC" },
+    "limits": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/limits" },
+    "ack": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ack" },
+    "ackErr": { "$ref": "../mqtt/state.schema.json#/$defs/status/properties/ackErr" }
   },
-  "required": ["v", "source"]
+  "required": ["v", "source", "deviceId", "type", "ts", "mode", "led", "limits"],
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "door" } } }, "then": { "$ref": "../mqtt/state.schema.json#/$defs/door" } },
+    {
+      "if": { "properties": { "type": { "const": "temp" } } },
+      "then": {
+        "description": "Like the MQTT temp shape, but tempC may be missing: a probe fault sends null, which is not stored.",
+        "properties": { "door": false, "openSec": false, "limits": { "type": "object", "required": ["tempMaxC"], "properties": { "openMaxSec": false } } }
+      }
+    }
+  ]
 }

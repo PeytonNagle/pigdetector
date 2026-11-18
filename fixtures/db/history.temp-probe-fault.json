@@ -1,0 +1,10 @@
+{
+  "v": 1,
+  "deviceId": "pd-8b21e4d0",
+  "type": "temp",
+  "mode": "auto",
+  "led": false,
+  "limits": { "tempMaxC": 4.4 },
+  "ts": 1763164807456,
+  "source": "live"
+}

@@ -2,12 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://schemas.pigdetector.invalid/db/latest.schema.json",
   "title": "pd_latest item",
-  "description": "The full last state message per node, written by rule pd_live (SELECT *, 'live' AS source, 1 AS v). Unknown fields are allowed so a new gateway field can't break reads.",
+  "description": "The last live message per node, written by rule pd_live. Same shape as a pd_history item, so a missing ack, ackErr or tempC means null. Unknown fields are allowed so a new gateway field can't break reads.",
   "type": "object",
-  "$ref": "../mqtt/state.schema.json",
+  "$ref": "history.schema.json",
   "properties": {
-    "v": { "description": "Schema version of this item.", "const": 1, "default": 1 },
     "source": { "const": "live" }
-  },
-  "required": ["v", "source"]
+  }
 }
