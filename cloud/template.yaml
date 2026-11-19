@@ -72,7 +72,7 @@ Resources:
       # 10 write units absorb the recovered-readings upload after an outage.
       ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 10 }
 
-  # ---------- HTTP API and Lambda (C4) ----------
+  # ---------- API Lambda (C4) ----------
 
   # API Gateway checks the Cognito token, so the Lambda only sees signed-in callers.
   HttpApi:
@@ -142,7 +142,7 @@ Resources:
       LogGroupName: /aws/lambda/pd-api
       RetentionInDays: 14
 
-  # The Lambda logs invalid_node when a node's stored state breaks the contract and it's left out of GET /nodes.
+  # The Lambda logs invalid_node when a node's latest state breaks the API contract.
   # A term pattern, since text-format Lambda logs prefix each JSON line with time, request ID and level.
   ApiInvalidNodeMetric:
     Type: AWS::Logs::MetricFilter
@@ -156,7 +156,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: pd-api-invalid-nodes
-      AlarmDescription: GET /nodes left out a node whose stored state breaks the contract. See /aws/lambda/pd-api.
+      AlarmDescription: A node's latest state breaks the API contract, so GET /nodes left it out or POST /nodes refused it. See /aws/lambda/pd-api.
       Namespace: PigDetector
       MetricName: ApiInvalidNodes
       Statistic: Sum
@@ -268,7 +268,7 @@ Resources:
             Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/${!iot:Connection.Thing.Attributes[nodePrefix]}*/cmd
 
   # Drops payloads whose deviceId disagrees with the topic, ts in seconds or missing (contract: ms since 2020),
-  # and a missing or unknown type or one mixing door and temp fields, so pd_latest always fits the API contract.
+  # and a missing or unknown type or one mixing door and temp fields, which the API could never show.
   LiveRule:
     Type: AWS::IoT::TopicRule
     Properties:

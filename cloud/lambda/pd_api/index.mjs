@@ -49,7 +49,7 @@ async function listNodes(sub) {
   return reply(200, { nodes: nodes.filter(isValidNode).sort((a, b) => a.createdAt - b.createdAt) });
 }
 
-// Returns { request } with deviceId trimmed and lowercased and name defaulted, or { error } as a 400 response.
+// Returns the error response instead of throwing, so a bad body stays a 400 rather than the handler's 500.
 function parseRegisterBody({ body, isBase64Encoded }) {
   let data;
   try {
@@ -77,14 +77,18 @@ async function registerNode(sub, event) {
   const { deviceId, name } = request;
   const latest = await getLatest(deviceId);
   if (!latest) return fail(422, 'node_not_seen', `no message from ${deviceId} yet`);
-  const node = validate('db/node', { v: 1, deviceId, ownerSub: sub, type: latest.type, name, createdAt: Date.now(), pigHours: null });
+  const item = { v: 1, deviceId, ownerSub: sub, type: latest.type, name, createdAt: Date.now(), pigHours: null };
+  const apiNode = toApiNode(item, latest, item.createdAt);
+  // The rule checks only type and fields; storing a node GET /nodes would leave out strands it behind a 409.
+  if (!isValidNode(apiNode)) return fail(422, 'node_not_seen', `last message from ${deviceId} is invalid`);
+  const node = validate('db/node', item);
   try {
     await db.send(new PutCommand({ TableName: NODES, Item: node, ConditionExpression: 'attribute_not_exists(deviceId)' }));
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') return fail(409, 'already_registered', `${deviceId} is already registered`);
     throw err;
   }
-  return reply(201, toApiNode(node, latest, node.createdAt));
+  return reply(201, apiNode);
 }
 
 const routes = { 'GET /nodes': listNodes, 'POST /nodes': registerNode };

@@ -111,7 +111,7 @@ Node fields ([schema](../fixtures/schemas/api/node.schema.json)):
 |---|---|
 | `deviceId` | `pd-` plus 8 lowercase hex digits |
 | `name` | Dashboard label, 1 to 40 characters |
-| `type` | `door` or `temp`, taken from the node's first message |
+| `type` | `door` or `temp`, taken from the node's latest message when it was registered |
 | `createdAt` | When the node was registered |
 | `pigHours` | Door nodes: `{start, end}` in Phoenix time, `HH:MM`, or `null` until set. Temp nodes: always `null` |
 | `online` | `true` if `latest.ts` is less than 20 s old |
@@ -123,7 +123,7 @@ A node whose stored data doesn't fit this shape is left out of the list, not ret
 
 ## POST /nodes
 
-Registers a node to the signed-in user. The node must have sent at least one message through the gateway first, because its type comes from that message.
+Registers a node to the signed-in user. The node must have sent at least one message through the gateway first, because its type comes from its latest message. Add the `201` body to the dashboard's list directly: a `GET /nodes` right after can miss the new node for a moment.
 
 **Request body** ([schema](../fixtures/schemas/api/register-request.schema.json)):
 
@@ -177,7 +177,7 @@ Without a name, from [`register-request.no-name.json`](../fixtures/api/register-
 { "error": { "code": "already_registered", "message": "pd-8b21e4d0 is already registered" } }
 ```
 
-`422`, no message from the node has reached the cloud yet. Power it on near the gateway, wait a few seconds, and try again. Messages with a missing or unknown `type`, or with both door and temp fields, are dropped by the IoT rule, so a node sending those also gets `422`. From [`error.node-not-seen.json`](../fixtures/api/errors/error.node-not-seen.json):
+`422`, no message from the node has reached the cloud yet. Power it on near the gateway, wait a few seconds, and try again. Messages with a missing or unknown `type`, or with both door and temp fields, are dropped by the IoT rule, so a node sending those also gets `422`. A latest message that reached the cloud but breaks the contract (for example, no `limits`) gets `422` with `"last message from pd-8b21e4d0 is invalid"`. From [`error.node-not-seen.json`](../fixtures/api/errors/error.node-not-seen.json):
 
 ```json
 { "error": { "code": "node_not_seen", "message": "no message from pd-8b21e4d0 yet" } }

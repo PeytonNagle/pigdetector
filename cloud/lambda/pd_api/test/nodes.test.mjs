@@ -20,7 +20,6 @@ const NOW = 1763164805000;
 const latestDoor = { v: 1, deviceId: dbDoor.deviceId, type: 'door', ...apiDoor.latest, source: 'live' };
 const nodeTemp = { ...dbTemp, name: apiTemp.name };
 
-// Fake tables, keyed by deviceId; each test fills them.
 let nodes;
 let latest;
 let sent;
@@ -189,4 +188,20 @@ test('POST /nodes refuses a node the cloud has never heard from', async () => {
   expectError(res, 422, 'node_not_seen');
   assert.deepEqual(res.body, notSeen);
   assert.equal(sent.some((c) => c instanceof PutCommand), false);
+});
+
+test('POST /nodes refuses a node whose last message breaks the contract', async (t) => {
+  // Each would store a node that GET /nodes then leaves out forever, while a retry gets 409.
+  const { limits: _limits, ...noLimits } = latestTemp;
+  const cases = {
+    'missing limits': noLimits,
+    'unknown type': { ...latestTemp, type: 'Temp' },
+  };
+  for (const [name, badLatest] of Object.entries(cases)) {
+    await t.test(name, async () => {
+      latest = { [dbTemp.deviceId]: badLatest };
+      expectError(await call('POST /nodes', registerTemp), 422, 'node_not_seen');
+      assert.equal(sent.some((c) => c instanceof PutCommand), false);
+    });
+  }
 });
