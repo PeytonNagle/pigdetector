@@ -74,6 +74,25 @@ Resources:
 
   # ---------- API Lambda (C4) ----------
 
+  # API Gateway checks the Cognito token, so the Lambda only sees signed-in callers.
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+              audience: [!Ref UserPoolClient]
+      # API Gateway answers preflight itself, without the authorizer.
+      CorsConfiguration:
+        AllowOrigins: [!Ref SiteUrl, !Ref LocalUrl]
+        AllowHeaders: [authorization, content-type]
+        AllowMethods: [GET, POST]
+        MaxAge: 600
+
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -87,6 +106,24 @@ Resources:
       Timeout: 10
       LoggingConfig:
         LogGroup: !Ref ApiFunctionLogs
+      Events:
+        ListNodes:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Method: GET, Path: /nodes }
+        RegisterNode:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Method: POST, Path: /nodes }
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:Query
+              Resource: !Sub ${NodesTable.Arn}/index/byOwner
+            - Effect: Allow
+              Action: dynamodb:PutItem
+              Resource: !GetAtt NodesTable.Arn
+            - Effect: Allow
+              Action: dynamodb:GetItem
+              Resource: !GetAtt LatestTable.Arn
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -94,6 +131,8 @@ Resources:
         Platform: node
         Target: node22
         OutExtension: [.js=.mjs]
+        # Prefer ESM builds: the SDK's CommonJS builds call require(), which an ESM bundle can't do.
+        MainFields: module,main
         EntryPoints: [index.mjs]
         Minify: false
 
@@ -102,6 +141,31 @@ Resources:
     Properties:
       LogGroupName: /aws/lambda/pd-api
       RetentionInDays: 14
+
+  # The Lambda logs invalid_node when a node's latest state breaks the API contract.
+  # A term pattern, since text-format Lambda logs prefix each JSON line with time, request ID and level.
+  ApiInvalidNodeMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref ApiFunctionLogs
+      FilterPattern: '"invalid_node"'
+      MetricTransformations:
+        - { MetricNamespace: PigDetector, MetricName: ApiInvalidNodes, MetricValue: "1", DefaultValue: 0 }
+
+  ApiInvalidNodeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: pd-api-invalid-nodes
+      AlarmDescription: A node's latest state breaks the API contract, so GET /nodes left it out or POST /nodes refused it. See /aws/lambda/pd-api.
+      Namespace: PigDetector
+      MetricName: ApiInvalidNodes
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
 
   # ---------- Cognito (C5) ----------
 
@@ -203,7 +267,8 @@ Resources:
             Action: iot:Receive
             Resource: !Sub arn:aws:iot:${AWS::Region}:${AWS::AccountId}:topic/pigdetector/${!iot:Connection.Thing.Attributes[nodePrefix]}*/cmd
 
-  # Drops payloads whose deviceId disagrees with the topic, and ts in seconds or missing (contract: ms since 2020).
+  # Drops payloads whose deviceId disagrees with the topic, ts in seconds or missing (contract: ms since 2020),
+  # and a missing or unknown type or one mixing door and temp fields, which the API could never show.
   LiveRule:
     Type: AWS::IoT::TopicRule
     Properties:
@@ -213,6 +278,8 @@ Resources:
         Sql: >-
           SELECT *, 'live' AS source, 1 AS v FROM 'pigdetector/+/state'
           WHERE deviceId = topic(2) AND ts >= 1577836800000
+          AND ((type = 'door' AND NOT isUndefined(door) AND isUndefined(tempC))
+          OR (type = 'temp' AND NOT isUndefined(tempC) AND isUndefined(door)))
         RuleDisabled: false
         Actions:
           - DynamoDBv2:
@@ -358,6 +425,9 @@ Resources:
                 Resource: !GetAtt IotLogs.Arn
 
 Outputs:
+  ApiUrl:
+    Description: Base URL for web/js/config.js
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
   UserPoolId:
     Value: !Ref UserPool
   UserPoolClientId:
