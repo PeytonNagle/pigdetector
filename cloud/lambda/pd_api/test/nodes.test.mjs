@@ -1,5 +1,6 @@
 import { test, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { handler } from '../index.mjs';
 import { validate } from '../lib/schemas.mjs';
@@ -9,6 +10,10 @@ import latestTemp from '../../../../fixtures/db/latest.temp.json' with { type: '
 import apiDoor from '../../../../fixtures/api/node.door.json' with { type: 'json' };
 import apiTemp from '../../../../fixtures/api/node.temp.json' with { type: 'json' };
 import twoNodes from '../../../../fixtures/api/nodes.two-nodes.json' with { type: 'json' };
+import registerTemp from '../../../../fixtures/api/register-request.temp.json' with { type: 'json' };
+import registerNoName from '../../../../fixtures/api/register-request.no-name.json' with { type: 'json' };
+import alreadyRegistered from '../../../../fixtures/api/errors/error.already-registered.json' with { type: 'json' };
+import notSeen from '../../../../fixtures/api/errors/error.node-not-seen.json' with { type: 'json' };
 
 const SUB = dbDoor.ownerSub;
 const NOW = 1763164805000;
@@ -117,3 +122,71 @@ test('GET /nodes leaves out a bad node and logs it', async (t) => {
   }
 });
 
+
+test('POST /nodes registers a seen node to the caller', async () => {
+  latest = { [dbTemp.deviceId]: latestTemp };
+  const res = await call('POST /nodes', registerTemp);
+  validate('api/node', res.body);
+  assert.equal(res.status, 201);
+  assert.deepEqual(res.body, { ...apiTemp, createdAt: NOW });
+  const put = sent.find((c) => c instanceof PutCommand).input;
+  validate('db/node', put.Item);
+  assert.equal(put.TableName, 'pd_nodes');
+  assert.equal(put.Item.ownerSub, SUB);
+  assert.equal(put.Item.type, latestTemp.type);
+  assert.equal(put.ConditionExpression, 'attribute_not_exists(deviceId)');
+});
+
+test('POST /nodes trims and lowercases the device ID', async () => {
+  latest = { [dbTemp.deviceId]: latestTemp };
+  const res = await call('POST /nodes', { deviceId: '  PD-8B21E4D0 ' });
+  assert.equal(res.status, 201);
+  assert.equal(res.body.deviceId, 'pd-8b21e4d0');
+  assert.ok(nodes['pd-8b21e4d0']);
+});
+
+test('POST /nodes names the node after its ID when no name is given', async () => {
+  latest = { [dbTemp.deviceId]: latestTemp };
+  const res = await call('POST /nodes', registerNoName);
+  assert.equal(res.status, 201);
+  assert.equal(nodes[dbTemp.deviceId].name, dbTemp.deviceId);
+});
+
+test('POST /nodes rejects bad bodies', async (t) => {
+  // Each case names the code it should get, so a case can't pass by failing for another reason.
+  const cases = {
+    'ID not matching the pattern': [{ deviceId: 'pd-xyz' }, 'invalid_device_id'],
+    'numeric ID': [{ deviceId: 12345678 }, 'invalid_device_id'],
+    'bad ID and bad name': [{ deviceId: 'nope', name: '' }, 'invalid_device_id'],
+    'not JSON': ['{deviceId:', 'invalid_body'],
+    'no body': [undefined, 'invalid_body'],
+    'null body': ['null', 'invalid_body'],
+    'array body': [[registerTemp], 'invalid_body'],
+    'missing ID': [{ name: 'Fridge' }, 'invalid_body'],
+    'blank name': [{ ...registerTemp, name: '   ' }, 'invalid_body'],
+    'name over 40 characters': [{ ...registerTemp, name: 'x'.repeat(41) }, 'invalid_body'],
+    'numeric name': [{ ...registerTemp, name: 7 }, 'invalid_body'],
+  };
+  for (const [name, [body, code]] of Object.entries(cases)) {
+    await t.test(name, async () => {
+      latest = { [dbTemp.deviceId]: latestTemp };
+      expectError(await call('POST /nodes', body), 400, code);
+      assert.equal(sent.length, 0);
+    });
+  }
+});
+
+test('POST /nodes refuses a node any account already registered', async () => {
+  latest = { [dbTemp.deviceId]: latestTemp };
+  putError = new ConditionalCheckFailedException({ message: 'The conditional request failed', $metadata: {} });
+  const res = await call('POST /nodes', registerTemp);
+  expectError(res, 409, 'already_registered');
+  assert.deepEqual(res.body, alreadyRegistered);
+});
+
+test('POST /nodes refuses a node the cloud has never heard from', async () => {
+  const res = await call('POST /nodes', registerTemp);
+  expectError(res, 422, 'node_not_seen');
+  assert.deepEqual(res.body, notSeen);
+  assert.equal(sent.some((c) => c instanceof PutCommand), false);
+});
