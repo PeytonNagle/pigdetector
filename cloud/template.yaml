@@ -197,6 +197,8 @@ Resources:
       AllowedOAuthScopes: [openid, email, profile]
       SupportedIdentityProviders: [COGNITO]
       CallbackURLs:
+        - !Sub ${SiteUrl}/
+        - !Sub ${LocalUrl}/
         - !Sub ${SiteUrl}/callback.html
         - !Sub ${LocalUrl}/callback.html
       LogoutURLs:
