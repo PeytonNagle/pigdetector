@@ -44,8 +44,10 @@ async function listNodes(sub) {
     { TableName: NODES, IndexName: 'byOwner', KeyConditionExpression: 'ownerSub = :sub', ExpressionAttributeValues: { ':sub': sub } },
   );
   for await (const page of pages) owned.push(...page.Items);
+  const latests = await Promise.all(owned.map((node) => getLatest(node.deviceId)));
+  // Read the clock after the reads, so a slow read can't report a stale node as online.
   const now = Date.now();
-  const nodes = await Promise.all(owned.map(async (node) => toApiNode(node, await getLatest(node.deviceId), now)));
+  const nodes = owned.map((node, i) => toApiNode(node, latests[i], now));
   return reply(200, { nodes: nodes.filter(isValidNode).sort((a, b) => a.createdAt - b.createdAt) });
 }
 
