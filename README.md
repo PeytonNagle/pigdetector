@@ -15,8 +15,8 @@ ECE 413/513 final project, Fall 2026. PigDetector watches a fridge: a door node 
 
 An account with recently collected data, for graders.
 
-- Email: _TBD_
-- Password: _TBD_
+- Email: `demo@example.com`
+- Password: given to graders with the submission (never in this public repo)
 
 ## Project structure
 
@@ -61,6 +61,7 @@ See [cloud/README.md](cloud/README.md) and [docs/api.md](docs/api.md).
 | What | Value |
 |---|---|
 | AWS Region | `us-west-1` |
+| API base URL | https://z8c550rufd.execute-api.us-west-1.amazonaws.com ([docs/api.md](docs/api.md)) |
 | Login page (Cognito) | https://pigdetector-828411126105.auth.us-west-1.amazoncognito.com |
 | User pool / app client | `us-west-1_UAbK8omG2` / `53ag8m9ir3lggeb4qo0p53arbp` |
 | IoT endpoint | `a1h01vt47w0y8q-ats.iot.us-west-1.amazonaws.com` |
