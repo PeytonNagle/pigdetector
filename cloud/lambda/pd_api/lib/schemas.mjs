@@ -3,9 +3,24 @@
 import Ajv from 'ajv/dist/2020.js';
 import common from '../../../../fixtures/schemas/common.schema.json' with { type: 'json' };
 import node from '../../../../fixtures/schemas/db/node.schema.json' with { type: 'json' };
+import latest from '../../../../fixtures/schemas/db/latest.schema.json' with { type: 'json' };
+import state from '../../../../fixtures/schemas/mqtt/state.schema.json' with { type: 'json' };
+import apiNode from '../../../../fixtures/schemas/api/node.schema.json' with { type: 'json' };
+import apiNodes from '../../../../fixtures/schemas/api/nodes.schema.json' with { type: 'json' };
+import registerRequest from '../../../../fixtures/schemas/api/register-request.schema.json' with { type: 'json' };
+import apiError from '../../../../fixtures/schemas/api/errors/error.schema.json' with { type: 'json' };
 
 // Keyed by path under fixtures/schemas/, without .schema.json.
-const schemas = { common, 'db/node': node };
+const schemas = {
+  common,
+  'db/node': node,
+  'db/latest': latest,
+  'mqtt/state': state,
+  'api/node': apiNode,
+  'api/nodes': apiNodes,
+  'api/register-request': registerRequest,
+  'api/errors/error': apiError,
+};
 
 const ajv = new Ajv({ allErrors: true, useDefaults: true, schemas: Object.values(schemas) });
 
@@ -13,11 +28,14 @@ const ajv = new Ajv({ allErrors: true, useDefaults: true, schemas: Object.values
 const validators = Object.fromEntries(Object.entries(schemas).map(([name, s]) => [name, ajv.getSchema(s.$id)]));
 
 // Returns a copy with defaults filled in; throws if the item breaks the schema.
+// The thrown error carries ajv's errors, so callers can tell which field failed.
 export function validate(name, item) {
   const check = validators[name];
   if (!check) throw new Error(`no schema named ${name}`);
   // Deep copy: useDefaults fills nested objects too, and the caller's input must not change.
   const copy = structuredClone(item);
-  if (!check(copy)) throw new Error(`invalid ${name}: ${ajv.errorsText(check.errors)}`);
+  if (!check(copy)) {
+    throw Object.assign(new Error(`invalid ${name}: ${ajv.errorsText(check.errors)}`), { errors: check.errors });
+  }
   return copy;
 }
