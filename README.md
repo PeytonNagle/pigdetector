@@ -16,7 +16,7 @@ ECE 413/513 final project, Fall 2026. PigDetector watches a fridge: a door node 
 An account with recently collected data, for graders.
 
 - Email: `demo@example.com`
-- Password: given to graders with the submission (never in this public repo)
+- Password: `DemoPassword%1`
 
 ## Project structure
 
@@ -53,6 +53,21 @@ pigdetector/
 ## IoT (Wonhee)
 
 See [firmware/README.md](firmware/README.md).
+
+### Registering a real node
+
+A node can only be registered after the cloud has received a message from it, because its type (`door` or `temp`) comes from that message.
+
+1. Power on the gateway and the node, and keep the node within BLE range.
+2. Find the node's device ID (`pd-` plus 8 lowercase hex digits). In the AWS IoT console (us-west-1), open **MQTT test client** and subscribe to `pigdetector/+/state`. Each message's topic and `deviceId` show the ID. A message that never shows up here hasn't reached the cloud.
+3. Log in on the [live site](https://main.dc3k8sg5zaosx.amplifyapp.com), enter the device ID (and a name if you like), and click **Register node**.
+
+Error messages on the site:
+
+- **"The cloud hasn't heard from that node yet."** No valid message has arrived. The `pd_live` rule drops messages whose `deviceId` doesn't match the topic, whose `ts` isn't in milliseconds, or that mix door and temp fields.
+- **"That node is already registered to an account."** Each node has one owner, the first account to register it. Register the demo nodes from the demo account.
+
+A node's type is fixed at registration. If a node is re-flashed as the other type, delete its item from `pd_nodes` and register it again.
 
 ## Backend (Peyton)
 
