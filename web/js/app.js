@@ -4,6 +4,8 @@ const API_URL = 'https://z8c550rufd.execute-api.us-west-1.amazonaws.com';
 const REDIRECT_URI = `${location.origin}/`;
 const LOGOUT_URI = `${location.origin}/index.html`;
 const POLL_MS = 5000;
+const CHART_WINDOW_MS = 15 * 60 * 1000;
+const CHART = { w: 600, h: 160, pad: 4 };
 
 const REGISTER_ERRORS = {
   invalid_device_id: 'Device ID must be pd- plus 8 hex digits.',
@@ -14,6 +16,7 @@ const REGISTER_ERRORS = {
 
 const $ = (id) => document.getElementById(id);
 let nodes = [];
+let histories = {};
 let pollTimer = null;
 
 function base64url(bytes) {
@@ -131,16 +134,72 @@ function render() {
       dl.append(Object.assign(document.createElement('dt'), { textContent: label }));
       dl.append(Object.assign(document.createElement('dd'), { textContent: fmt(value) }));
     }
-    card.append(Object.assign(document.createElement('h2'), { textContent: node.name }), dl);
+    card.append(Object.assign(document.createElement('h2'), { textContent: node.name }), dl, chart(node));
     list.append(card);
   }
+}
+
+const svg = (tag, attrs) => {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+};
+
+// Plots the last 15 minutes: temperature for temp nodes, seconds open for door nodes, with the limit dashed.
+function chart(node) {
+  const wrap = Object.assign(document.createElement('figure'), { className: 'chart' });
+  const [field, limitKey, unit] = node.type === 'temp' ? ['tempC', 'tempMaxC', '°C'] : ['openSec', 'openMaxSec', 's open'];
+  const points = (histories[node.deviceId] ?? []).filter((h) => typeof h[field] === 'number').reverse();
+  const caption = document.createElement('figcaption');
+  caption.className = 'muted';
+  if (points.length < 2) {
+    caption.textContent = histories[node.deviceId] ? 'Not enough readings in the last 15 minutes to chart.' : 'Loading history…';
+    wrap.append(caption);
+    return wrap;
+  }
+  const limit = node.latest?.limits?.[limitKey];
+  const values = points.map((p) => p[field]).concat(typeof limit === 'number' ? [limit] : []);
+  const lo = Math.min(...values) - 0.5;
+  const hi = Math.max(...values) + 0.5;
+  const t0 = points[0].ts;
+  const t1 = points[points.length - 1].ts;
+  const x = (ts) => CHART.pad + ((ts - t0) / (t1 - t0 || 1)) * (CHART.w - 2 * CHART.pad);
+  const y = (v) => CHART.pad + ((hi - v) / (hi - lo)) * (CHART.h - 2 * CHART.pad);
+  const plot = svg('svg', { viewBox: `0 0 ${CHART.w} ${CHART.h}`, preserveAspectRatio: 'none', role: 'img', 'aria-label': `${node.name} ${field} over time` });
+  if (typeof limit === 'number') {
+    plot.append(svg('line', { x1: 0, x2: CHART.w, y1: y(limit), y2: y(limit), class: 'limit' }));
+  }
+  plot.append(svg('polyline', { points: points.map((p) => `${x(p.ts)},${y(p[field])}`).join(' '), class: 'series' }));
+  const latest = points[points.length - 1][field];
+  const time = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  caption.textContent = `${time(t0)} – ${time(t1)} · ${points.length} readings · now ${latest} ${unit}`
+    + (typeof limit === 'number' ? ` · limit ${limit} ${unit} (dashed)` : '');
+  wrap.append(plot, caption);
+  return wrap;
+}
+
+// A failed history read leaves that node's last chart in place; the status line reports it.
+async function loadHistories() {
+  const from = Date.now() - CHART_WINDOW_MS;
+  const results = await Promise.allSettled(
+    nodes.map((n) => api('GET', `/nodes/${n.deviceId}/history?from=${from}&limit=500`)),
+  );
+  const failed = [];
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') histories[nodes[i].deviceId] = r.value.items;
+    else if (r.reason instanceof SignedOut) throw r.reason;
+    else failed.push(nodes[i].name);
+  });
+  return failed;
 }
 
 async function poll() {
   try {
     nodes = (await api('GET', '/nodes')).nodes;
+    const failed = await loadHistories();
     render();
-    $('status').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    $('status').textContent = `Updated ${new Date().toLocaleTimeString()}`
+      + (failed.length ? ` · couldn't load history for ${failed.join(', ')}` : '');
   } catch (err) {
     if (err instanceof SignedOut) return signOutLocally('Your session expired. Log in again.');
     $('status').textContent = `Couldn't load nodes: ${err.message}`;

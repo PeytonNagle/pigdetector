@@ -14,6 +14,9 @@ import registerTemp from '../../../../fixtures/api/register-request.temp.json' w
 import registerNoName from '../../../../fixtures/api/register-request.no-name.json' with { type: 'json' };
 import alreadyRegistered from '../../../../fixtures/api/errors/error.already-registered.json' with { type: 'json' };
 import notSeen from '../../../../fixtures/api/errors/error.node-not-seen.json' with { type: 'json' };
+import dbHistoryDoor from '../../../../fixtures/db/history.door.json' with { type: 'json' };
+import apiHistoryDoor from '../../../../fixtures/api/history.door.json' with { type: 'json' };
+import apiHistoryTemp from '../../../../fixtures/api/history.temp.json' with { type: 'json' };
 
 const SUB = dbDoor.ownerSub;
 const NOW = 1763164805000;
@@ -22,12 +25,14 @@ const nodeTemp = { ...dbTemp, name: apiTemp.name };
 
 let nodes;
 let latest;
+let history;
 let sent;
 let putError;
 
 beforeEach(() => {
   nodes = {};
   latest = {};
+  history = [];
   sent = [];
   putError = null;
   // Hooks also run around subtests, inside a test whose mocks are still on.
@@ -37,11 +42,16 @@ beforeEach(() => {
   mock.method(DynamoDBDocumentClient.prototype, 'send', async (command) => {
     sent.push(command);
     const input = command.input;
+    if (command instanceof QueryCommand && input.TableName === 'pd_history') {
+      const { ':d': d, ':from': from, ':to': to } = input.ExpressionAttributeValues;
+      const rows = history.filter((h) => h.deviceId === d && h.ts >= from && h.ts <= to).sort((a, b) => b.ts - a.ts);
+      return { Items: rows.slice(0, input.Limit) };
+    }
     if (command instanceof QueryCommand) {
       const sub = input.ExpressionAttributeValues[':sub'];
       return { Items: Object.values(nodes).filter((n) => n.ownerSub === sub) };
     }
-    if (command instanceof GetCommand) return { Item: latest[input.Key.deviceId] };
+    if (command instanceof GetCommand) return { Item: (input.TableName === 'pd_nodes' ? nodes : latest)[input.Key.deviceId] };
     if (command instanceof PutCommand) {
       if (putError) throw putError;
       nodes[input.Item.deviceId] = input.Item;
@@ -56,8 +66,9 @@ afterEach(() => {
   mock.timers.reset();
 });
 
-const call = async (routeKey, body) => {
+const call = async (routeKey, body, extra = {}) => {
   const res = await handler({
+    ...extra,
     routeKey,
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
     isBase64Encoded: false,
@@ -202,6 +213,70 @@ test('POST /nodes refuses a node whose last message breaks the contract', async 
       latest = { [dbTemp.deviceId]: badLatest };
       expectError(await call('POST /nodes', registerTemp), 422, 'node_not_seen');
       assert.equal(sent.some((c) => c instanceof PutCommand), false);
+    });
+  }
+});
+
+const HISTORY_ROUTE = 'GET /nodes/{deviceId}/history';
+const getHistory = (deviceId, query) => call(HISTORY_ROUTE, undefined, { pathParameters: { deviceId }, queryStringParameters: query });
+const tempRows = () => apiHistoryTemp.items.map((item) => ({ v: 1, deviceId: dbTemp.deviceId, type: 'temp', ...item }));
+
+test('GET history returns the caller\'s readings newest first, without deviceId, type or v', async () => {
+  nodes = { [dbTemp.deviceId]: nodeTemp };
+  history = [...tempRows()].reverse();
+  const res = await getHistory(dbTemp.deviceId);
+  validate('api/history', res.body);
+  assert.deepEqual(res, { status: 200, body: apiHistoryTemp });
+});
+
+test('GET history gives a pig verdict only on door openings inside pig hours', async () => {
+  nodes = { [dbDoor.deviceId]: dbDoor };
+  const later = { ...dbHistoryDoor, ts: dbHistoryDoor.ts + 5000, openSec: 5 };
+  history = [dbHistoryDoor, later];
+  const res = await getHistory(dbDoor.deviceId);
+  validate('api/history', res.body);
+  assert.deepEqual(res.body, apiHistoryDoor);
+  nodes = { [dbDoor.deviceId]: { ...dbDoor, pigHours: { start: '08:00', end: '09:00' } } };
+  assert.equal((await getHistory(dbDoor.deviceId)).body.items[1].pig, false);
+});
+
+test('GET history applies from, to and limit', async () => {
+  nodes = { [dbTemp.deviceId]: nodeTemp };
+  history = tempRows();
+  const [newest, oldest] = apiHistoryTemp.items;
+  assert.deepEqual((await getHistory(dbTemp.deviceId, { limit: '1' })).body.items, [newest]);
+  assert.deepEqual((await getHistory(dbTemp.deviceId, { to: String(oldest.ts) })).body.items, [oldest]);
+  assert.deepEqual((await getHistory(dbTemp.deviceId, { from: String(newest.ts + 1) })).body, { items: [] });
+});
+
+test('GET history hides nodes the caller doesn\'t own', async (t) => {
+  const cases = {
+    'another account\'s node': { [dbTemp.deviceId]: { ...nodeTemp, ownerSub: '00000000-0000-4000-8000-000000000000' } },
+    'unregistered node': {},
+  };
+  for (const [name, owned] of Object.entries(cases)) {
+    await t.test(name, async () => {
+      nodes = owned;
+      history = tempRows();
+      expectError(await getHistory(dbTemp.deviceId), 404, 'node_not_found');
+      assert.equal(sent.some((c) => c instanceof QueryCommand), false);
+    });
+  }
+});
+
+test('GET history rejects bad IDs and queries', async (t) => {
+  const cases = {
+    'bad ID': ['pd-xyz', {}, 'invalid_device_id'],
+    'non-numeric from': [dbTemp.deviceId, { from: 'yesterday' }, 'invalid_query'],
+    'from after to': [dbTemp.deviceId, { from: '10', to: '5' }, 'invalid_query'],
+    'limit 0': [dbTemp.deviceId, { limit: '0' }, 'invalid_query'],
+    'limit over 1000': [dbTemp.deviceId, { limit: '1001' }, 'invalid_query'],
+  };
+  for (const [name, [deviceId, query, code]] of Object.entries(cases)) {
+    await t.test(name, async () => {
+      nodes = { [dbTemp.deviceId]: nodeTemp };
+      expectError(await getHistory(deviceId, query), 400, code);
+      assert.equal(sent.length, 0);
     });
   }
 });

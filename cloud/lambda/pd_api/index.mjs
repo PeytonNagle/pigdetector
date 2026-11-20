@@ -1,9 +1,13 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, paginateQuery } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, paginateQuery } from '@aws-sdk/lib-dynamodb';
 import { validate } from './lib/schemas.mjs';
 
 const NODES = 'pd_nodes';
 const LATEST = 'pd_latest';
+const HISTORY = 'pd_history';
+const HISTORY_LIMIT = 300;
+const HISTORY_MAX = 1000;
+const PHOENIX_OFFSET_MS = -7 * 3600 * 1000;
 const ONLINE_MS = 20000;
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -93,7 +97,49 @@ async function registerNode(sub, event) {
   return reply(201, apiNode);
 }
 
-const routes = { 'GET /nodes': listNodes, 'POST /nodes': registerNode };
+// Phoenix has no DST, so a fixed UTC-7 offset is exact. The window may cross midnight.
+function inPigHours(ts, { start, end }) {
+  const d = new Date(ts + PHOENIX_OFFSET_MS);
+  const hhmm = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  return start < end ? hhmm >= start && hhmm < end : hhmm >= start || hhmm < end;
+}
+
+// Only an opening row (door just opened) gets a pig verdict; every other door row is null.
+function toHistoryItem({ deviceId: _id, type, v: _v, ...item }, pigHours) {
+  if (type !== 'door') return item;
+  const opening = item.door === 'open' && item.openSec === 0;
+  return { ...item, pig: opening ? pigHours !== null && inPigHours(item.ts, pigHours) : null };
+}
+
+const toInt = (value, fallback) => (value === undefined ? fallback : /^\d+$/.test(value) ? Number(value) : NaN);
+
+function parseHistoryQuery(params = {}) {
+  const from = toInt(params.from, 0);
+  const to = toInt(params.to, Number.MAX_SAFE_INTEGER);
+  const limit = toInt(params.limit, HISTORY_LIMIT);
+  if ([from, to, limit].some(Number.isNaN) || from > to || limit < 1 || limit > HISTORY_MAX) return null;
+  return { from, to, limit };
+}
+
+// Newest first. The node must belong to the caller; anyone else's node reads as not found.
+async function getHistory(sub, event) {
+  const deviceId = event.pathParameters?.deviceId;
+  if (!/^pd-[0-9a-f]{8}$/.test(deviceId ?? '')) return fail(400, 'invalid_device_id', 'deviceId must be pd- plus 8 hex digits');
+  const query = parseHistoryQuery(event.queryStringParameters ?? undefined);
+  if (!query) return fail(400, 'invalid_query', `from and to must be ms, from <= to, limit 1 to ${HISTORY_MAX}`);
+  const node = (await db.send(new GetCommand({ TableName: NODES, Key: { deviceId } }))).Item;
+  if (!node || node.ownerSub !== sub) return fail(404, 'node_not_found', `${deviceId} is not one of your nodes`);
+  const { Items } = await db.send(new QueryCommand({
+    TableName: HISTORY,
+    KeyConditionExpression: 'deviceId = :d AND ts BETWEEN :from AND :to',
+    ExpressionAttributeValues: { ':d': deviceId, ':from': query.from, ':to': query.to },
+    ScanIndexForward: false,
+    Limit: query.limit,
+  }));
+  return reply(200, { items: Items.map((item) => toHistoryItem(item, node.pigHours)) });
+}
+
+const routes = { 'GET /nodes': listNodes, 'POST /nodes': registerNode, 'GET /nodes/{deviceId}/history': getHistory };
 
 export async function handler(event) {
   try {

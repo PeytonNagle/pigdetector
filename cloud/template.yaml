@@ -113,14 +113,20 @@ Resources:
         RegisterNode:
           Type: HttpApi
           Properties: { ApiId: !Ref HttpApi, Method: POST, Path: /nodes }
+        NodeHistory:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Method: GET, Path: /nodes/{deviceId}/history }
       Policies:
         - Statement:
             - Effect: Allow
               Action: dynamodb:Query
               Resource: !Sub ${NodesTable.Arn}/index/byOwner
             - Effect: Allow
-              Action: dynamodb:PutItem
+              Action: [dynamodb:PutItem, dynamodb:GetItem]
               Resource: !GetAtt NodesTable.Arn
+            - Effect: Allow
+              Action: dynamodb:Query
+              Resource: !GetAtt HistoryTable.Arn
             - Effect: Allow
               Action: dynamodb:GetItem
               Resource: !GetAtt LatestTable.Arn

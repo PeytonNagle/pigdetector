@@ -7,6 +7,7 @@ import latest from '../../../../fixtures/schemas/db/latest.schema.json' with { t
 import state from '../../../../fixtures/schemas/mqtt/state.schema.json' with { type: 'json' };
 import apiNode from '../../../../fixtures/schemas/api/node.schema.json' with { type: 'json' };
 import apiNodes from '../../../../fixtures/schemas/api/nodes.schema.json' with { type: 'json' };
+import history from '../../../../fixtures/schemas/api/history.schema.json' with { type: 'json' };
 import registerRequest from '../../../../fixtures/schemas/api/register-request.schema.json' with { type: 'json' };
 import apiError from '../../../../fixtures/schemas/api/errors/error.schema.json' with { type: 'json' };
 
@@ -18,6 +19,7 @@ const schemas = {
   'mqtt/state': state,
   'api/node': apiNode,
   'api/nodes': apiNodes,
+  'api/history': history,
   'api/register-request': registerRequest,
   'api/errors/error': apiError,
 };

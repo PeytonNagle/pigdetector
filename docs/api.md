@@ -1,6 +1,6 @@
 # PigDetector API
 
-The HTTP API the web app uses to list and register nodes. This page covers the milestone routes `GET /nodes` and `POST /nodes`.
+The HTTP API the web app uses to list and register nodes. This page covers `GET /nodes`, `POST /nodes` and `GET /nodes/{deviceId}/history`.
 
 The contracts live in [`fixtures/schemas/api/`](../fixtures/schemas/api/), and every example below is copied from [`fixtures/api/`](../fixtures/api/). If this page and the fixtures disagree, the fixtures win.
 
@@ -41,6 +41,8 @@ Every other error uses one shape ([schema](../fixtures/schemas/api/errors/error.
 |---|---|---|
 | 400 | `invalid_body` | The body is missing, isn't JSON, isn't an object, has no `deviceId`, or has a bad `name` |
 | 400 | `invalid_device_id` | `deviceId` isn't `pd-` plus 8 hex digits |
+| 400 | `invalid_query` | A history query parameter is out of range (see below) |
+| 404 | `node_not_found` | The node isn't registered to your account |
 | 409 | `already_registered` | Some account already owns this node, whether yours or someone else's |
 | 422 | `node_not_seen` | The cloud has never received a message from this node |
 | 500 | `internal` | Something failed on the server. Retry later |
@@ -188,3 +190,34 @@ Without a name, from [`register-request.no-name.json`](../fixtures/api/register-
 ```json
 { "error": { "code": "invalid_device_id", "message": "deviceId must be pd- plus 8 hex digits" } }
 ```
+
+## GET /nodes/{deviceId}/history
+
+Returns a node's stored readings, newest first. Readings are kept forever. Live and recovered readings are mixed; `source` tells them apart. The dashboard charts the last 15 minutes.
+
+**Query parameters** (all optional):
+
+| Param | Default | Rules |
+|---|---|---|
+| `from` | `0` | Earliest `ts` to include, ms |
+| `to` | no limit | Latest `ts` to include, ms. Must be at least `from` |
+| `limit` | `300` | 1 to 1000 readings |
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "$API_URL/nodes/pd-8b21e4d0/history?from=1763164000000&limit=100"
+```
+
+**Response `200`** ([schema](../fixtures/schemas/api/history.schema.json)), from [`history.temp.json`](../fixtures/api/history.temp.json):
+
+```json
+{
+  "items": [
+    { "ts": 1763164800123, "source": "live", "mode": "auto", "led": false, "tempC": 4.31, "limits": { "tempMaxC": 4.4 }, "ack": null, "ackErr": null },
+    { "ts": 1763164512002, "source": "recovered", "mode": "auto", "led": false, "tempC": 4.28, "limits": { "tempMaxC": 4.4 }, "ack": null, "ackErr": null }
+  ]
+}
+```
+
+No readings in range gives `{ "items": [] }`. Door items also carry `pig`: on an opening row (`door` is `open`, `openSec` is `0`) it's `true` if the opening fell inside the node's `pigHours`, otherwise `false`; on every other row it's `null` ([`history.door.json`](../fixtures/api/history.door.json)).
+
+**Errors:** `400 invalid_device_id`, `400 invalid_query`, and `404 node_not_found` when the node doesn't exist or belongs to another account.
