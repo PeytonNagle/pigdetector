@@ -115,7 +115,7 @@ Resources:
           Properties: { ApiId: !Ref HttpApi, Method: POST, Path: /nodes }
         NodeHistory:
           Type: HttpApi
-          Properties: { ApiId: !Ref HttpApi, Method: GET, Path: /nodes/{deviceId}/history }
+          Properties: { ApiId: !Ref HttpApi, Method: GET, Path: "/nodes/{deviceId}/history" }
       Policies:
         - Statement:
             - Effect: Allow
