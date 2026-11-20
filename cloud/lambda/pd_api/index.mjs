@@ -108,7 +108,7 @@ function inPigHours(ts, { start, end }) {
 function toHistoryItem({ deviceId: _id, type, v: _v, ...item }, pigHours) {
   if (type !== 'door') return item;
   const opening = item.door === 'open' && item.openSec === 0;
-  return { ...item, pig: opening ? pigHours !== null && inPigHours(item.ts, pigHours) : null };
+  return { ...item, pig: opening ? pigHours != null && inPigHours(item.ts, pigHours) : null };
 }
 
 const toInt = (value, fallback) => (value === undefined ? fallback : /^\d+$/.test(value) ? Number(value) : NaN);
